@@ -1076,7 +1076,6 @@ cdef purity_extract_value(Grid.DimStruct *dims,  double *purity_tracer, double *
         Py_ssize_t jstride = dims.nlg[2]
         Py_ssize_t ishift, jshift, ijk, i,j,k
 
-
     with nogil:
         for i in xrange(dims.gw, dims.nlg[0]-dims.gw):
             ishift = i * istride

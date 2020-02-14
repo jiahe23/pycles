@@ -133,8 +133,14 @@ class Simulation3d:
         self.Budg.initialize(self.Gr, self.StatsIO,self.Pa)
         self.Damping.initialize(self.Gr, self.RS)
         self.Aux.initialize(namelist, self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
+
+        print '======here====='
+
         self.CondStats.initialize(namelist, self.Gr, self.PV, self.DV, self.CondStatsIO, self.Pa)
 
+        if namelist['meta']['casename'] == 'SaturatedBubble':
+            print 'Initialize tracers in rising bubble'
+            self.Tr.initialize_bubble(self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
 
         return
 
@@ -160,7 +166,7 @@ class Simulation3d:
                 self.Ke.update(self.Gr,PV_)
                 self.Th.update(self.Gr,self.RS,PV_,DV_)
                 self.Micro.update(self.Gr, self.RS, self.Th,PV_, DV_, self.TS, self.Pa )
-                self.Tr.update(self.Gr, self.RS, PV_, DV_, self.TS,self.Pa)
+#                 self.Tr.update(self.Gr, self.RS, PV_, DV_, self.TS,self.Pa)
                 self.SA.update(self.Gr,self.RS,PV_, DV_,  self.Pa)
                 self.MA.update(self.Gr,self.RS,PV_,self.Pa)
                 self.Sur.update(self.Gr, self.RS,self.PV, self.DV,self.Pa,self.TS)
@@ -171,7 +177,7 @@ class Simulation3d:
                 self.Fo.update(self.Gr, self.RS, self.PV, self.DV, self.Pa, self.TS)
                 self.Ra.update(self.Gr, self.RS, self.PV, self.DV, self.Sur, self.TS, self.Pa)
                 self.Budg.update(self.Gr,self.Ra, self.Sur, self.TS, self.Pa)
-                self.Tr.update_cleanup(self.Gr, self.RS, PV_, DV_, self.Pa, self.TS)
+#                self.Tr.update_cleanup(self.Gr, self.RS, PV_, DV_, self.Pa, self.TS)
                 self.TS.update(self.Gr, self.PV, self.Pa)
                 PV_.Update_all_bcs(self.Gr, self.Pa)
                 self.Pr.update(self.Gr, self.RS, self.DV, self.PV, self.Pa)

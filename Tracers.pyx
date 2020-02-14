@@ -74,11 +74,17 @@ cdef class UpdraftTracers:
             self.lcl_tracers = False
 
         self.index_lcl = 0
+        self.casename = str(namelist['meta']['casename'])
 
         return
 
     cpdef initialize(self, Grid.Grid Gr,  PrognosticVariables.PrognosticVariables PV,
                      DiagnosticVariables.DiagnosticVariables DV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):
+
+        cdef:
+            Py_ssize_t istride = Gr.dims.nlg[1] * Gr.dims.nlg[2]
+            Py_ssize_t jstride = Gr.dims.nlg[2]
+
 
         self.updraft_indicator = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
 
@@ -87,7 +93,7 @@ cdef class UpdraftTracers:
         self.tracer_dict = {}
         self.tracer_dict['surface'] = {}
         self.tracer_dict['surface']['c_srf_15'] = {}
-        self.tracer_dict['surface']['c_srf_15']['timescale'] = 15.0 * 60.0
+        self.tracer_dict['surface']['c_srf_15']['timescale'] = 150.0 * 60.0
         if self.lcl_tracers:
             self.tracer_dict['lcl'] = {}
             self.tracer_dict['lcl']['c_lcl_15'] = {}
@@ -101,6 +107,7 @@ cdef class UpdraftTracers:
             for var in self.tracer_dict['lcl'].keys():
                 PV.add_variable(var, '-', var, 'tracer diagnostics', "sym", "scalar", Pa)
             NS.add_ts('grid_lcl', Gr, Pa )
+
 
 
         NS.add_profile('updraft_fraction', Gr, Pa, units=r'-',nice_name=r'a_u',
@@ -246,6 +253,28 @@ cdef class UpdraftTracers:
             NS.add_profile('env_ql_qr', Gr, Pa, units=r'kg^2 kg^{-2}', nice_name=r'(q_l q_r)_e',
                        desc=r'environment product of q_l and q_r')
 
+        return 
+
+
+    ''' JH: initialize tracers in the Saturated Bubble exp'''
+
+    cpdef initialize_bubble(self, Grid.Grid Gr,  PrognosticVariables.PrognosticVariables PV,
+                     DiagnosticVariables.DiagnosticVariables DV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):
+
+        cdef:
+            Py_ssize_t istride = Gr.dims.nlg[1] * Gr.dims.nlg[2]
+            Py_ssize_t jstride = Gr.dims.nlg[2]
+    
+        for var in self.tracer_dict['surface'].keys():
+            var_shift = PV.get_varshift(Gr, var)
+            for i in xrange(Gr.dims.nlg[0]):
+                for j in xrange(Gr.dims.nlg[1]):
+                    for k in xrange( Gr.dims.nlg[2]):
+                        ijk = i * istride + j * jstride + k
+                        # here we need to start tracer values as T'i
+                        dist = np.sqrt(((Gr.x_half[i + Gr.dims.indx_lo[0]]/1000.0 - 10.0)/2.0)**2.0 + ((Gr.z_half[k + Gr.dims.indx_lo[2]]/1000.0 - 2.0)/2.0)**2.0)
+                        dist = np.minimum(1.0,dist)
+                        PV.values[var_shift + ijk] = 2.0 * np.cos(np.pi * dist / 2.0)**2.0
 
         return
 

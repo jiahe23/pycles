@@ -253,18 +253,17 @@ cdef class UpdraftTracers:
             NS.add_profile('env_ql_qr', Gr, Pa, units=r'kg^2 kg^{-2}', nice_name=r'(q_l q_r)_e',
                        desc=r'environment product of q_l and q_r')
 
-        return 
+        return
 
 
-    ''' JH: initialize tracers in the Saturated Bubble exp'''
+    ''' JH: initialize tracers in the Saturated/Dry Bubble exp '''
 
     cpdef initialize_bubble(self, Grid.Grid Gr,  PrognosticVariables.PrognosticVariables PV,
                      DiagnosticVariables.DiagnosticVariables DV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):
-
         cdef:
             Py_ssize_t istride = Gr.dims.nlg[1] * Gr.dims.nlg[2]
             Py_ssize_t jstride = Gr.dims.nlg[2]
-    
+
         for var in self.tracer_dict['surface'].keys():
             var_shift = PV.get_varshift(Gr, var)
             for i in xrange(Gr.dims.nlg[0]):
@@ -275,8 +274,9 @@ cdef class UpdraftTracers:
                         dist = np.sqrt(((Gr.x_half[i + Gr.dims.indx_lo[0]]/1000.0 - 10.0)/2.0)**2.0 + ((Gr.z_half[k + Gr.dims.indx_lo[2]]/1000.0 - 2.0)/2.0)**2.0)
                         dist = np.minimum(1.0,dist)
                         PV.values[var_shift + ijk] = 2.0 * np.cos(np.pi * dist / 2.0)**2.0
-
         return
+
+    ''' JH '''
 
     cpdef update(self, Grid.Grid Gr, ReferenceState.ReferenceState Ref, PrognosticVariables.PrognosticVariables PV,
                  DiagnosticVariables.DiagnosticVariables DV, TimeStepping.TimeStepping TS, ParallelMPI.ParallelMPI Pa):

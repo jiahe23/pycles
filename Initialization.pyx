@@ -30,6 +30,8 @@ def InitializationFactory(namelist):
             return InitStableBubble
         elif casename == 'SaturatedBubble':
             return InitSaturatedBubble
+        elif casename == 'DryBubble':
+            return InitDryBubble
         elif casename == 'Bomex':
             return InitBomex
         elif casename == 'Soares':
@@ -155,6 +157,57 @@ def InitSaturatedBubble(namelist,Grid.Grid Gr,PrognosticVariables.PrognosticVari
 
     RS.Tg, ql = theta_to_T(RS.Pg,thetas_sfc,qt_sfc)
     RS.initialize(Gr, Th, NS, Pa)
+
+    #Get the variable number for each of the velocity components
+    cdef:
+        Py_ssize_t u_varshift = PV.get_varshift(Gr,'u')
+        Py_ssize_t v_varshift = PV.get_varshift(Gr,'v')
+        Py_ssize_t w_varshift = PV.get_varshift(Gr,'w')
+        Py_ssize_t s_varshift = PV.get_varshift(Gr,'s')
+        Py_ssize_t qt_varshift = PV.get_varshift(Gr,'qt')
+        Py_ssize_t i,j,k
+        Py_ssize_t ishift, jshift
+        Py_ssize_t ijk
+        double t
+        double dist
+        double thetas
+
+    for i in xrange(Gr.dims.nlg[0]):
+        ishift =  i * Gr.dims.nlg[1] * Gr.dims.nlg[2]
+        for j in xrange(Gr.dims.nlg[1]):
+            jshift = j * Gr.dims.nlg[2]
+            for k in xrange(Gr.dims.nlg[2]):
+                ijk = ishift + jshift + k
+                dist = np.sqrt(((Gr.x_half[i + Gr.dims.indx_lo[0]]/1000.0 - 10.0)/2.0)**2.0 + ((Gr.zp_half[k + Gr.dims.indx_lo[2]]/1000.0 - 2.0)/2.0)**2.0)
+                dist = np.minimum(1.0,dist)
+                thetas = RS.Tg
+                thetas += 2.0 * np.cos(np.pi * dist / 2.0)**2.0
+                PV.values[s_varshift + ijk] = entropy_from_thetas_c(thetas,RS.qtg)
+                PV.values[u_varshift + ijk] = 0.0 - RS.u0
+                PV.values[v_varshift + ijk] = 0.0 - RS.v0
+                PV.values[w_varshift + ijk] = 0.0
+                PV.values[qt_varshift + ijk] = RS.qtg
+
+    return
+
+def InitDryBubble(namelist,Grid.Grid Gr,PrognosticVariables.PrognosticVariables PV,
+                ReferenceState.ReferenceState RS, Th, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa, LatentHeat LH ):
+
+    #Generate reference profiles
+    RS.Pg = 1.0e5
+    RS.qtg = 0.02
+
+    # neutrally stable theta is 300K. Thus sfc T is also 300K
+    RS.Tg = 300.0
+
+    # If error/warning occurs with 0.0, then try a very small number,say 1.0e-5.
+    RS.qtg = 0.0
+
+    RS.initialize(Gr, Th, NS, Pa)
+
+    #Set velocities for Galilean transformation
+    RS.u0 = 0.0
+    RS.v0 = 0.0
 
     #Get the variable number for each of the velocity components
     cdef:

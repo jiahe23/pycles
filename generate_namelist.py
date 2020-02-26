@@ -312,7 +312,7 @@ def DryBubble():
 
     namelist['meta'] = {}
     namelist['meta']['casename'] = 'DryBubble'
-    namelist['meta']['simname'] = 'DrydBubble'
+    namelist['meta']['simname'] = 'DryBubble'
 
     return namelist
 

@@ -139,7 +139,10 @@ class Simulation3d:
         self.CondStats.initialize(namelist, self.Gr, self.PV, self.DV, self.CondStatsIO, self.Pa)
 
         if namelist['meta']['casename'] == 'SaturatedBubble':
-            print 'Initialize tracers in rising bubble'
+            print 'Initialize tracers in saturated bubble'
+            self.Tr.initialize_bubble(self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
+        elif namelist['meta']['casename'] == 'DryBubble':
+            print 'Initialize tracers in dry bubble'
             self.Tr.initialize_bubble(self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
 
         return

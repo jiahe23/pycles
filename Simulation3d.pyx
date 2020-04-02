@@ -37,7 +37,7 @@ class Simulation3d:
 
     def __init__(self, namelist):
         return
-        
+
 
     def initialize(self, namelist):
         self.Pa = ParallelMPI.ParallelMPI(namelist)
@@ -164,6 +164,7 @@ class Simulation3d:
         if not self.Restart.is_restart_run:
             self.force_io()
         while (self.TS.t < self.TS.t_max):
+            print '=================> t: '+str(self.TS.t)
             time1 = time.time()
             for self.TS.rk_step in xrange(self.TS.n_rk_steps):
                 self.Ke.update(self.Gr,PV_)
@@ -332,4 +333,3 @@ class Simulation3d:
         self.Aux.stats_io(self.Gr, self.RS, self.PV, self.DV, self.MA, self.MD, self.StatsIO, self.Pa)
         self.StatsIO.close_files(self.Pa)
         return
-

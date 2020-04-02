@@ -132,6 +132,8 @@ cdef class TimeStepping:
         cdef:
             Py_ssize_t i
 
+        print '    rk_step: '+str(self.rk_step)
+
         with nogil:
             if self.rk_step == 0:
                 for i in xrange(Gr.dims.npg*PV.nv):

@@ -7,7 +7,7 @@ import sys
 import platform
 import subprocess as sp
 import os.path
-import string 
+import string
 
 
 # Now get include paths from relevant python modules
@@ -23,8 +23,10 @@ if sys.platform == 'darwin':
     extra_compile_args = []
     extra_compile_args += ['-O3', '-march=native', '-Wno-unused', '-Wno-#warnings','-fPIC']
     extra_objects=['./RRTMG/rrtmg_build/rrtmg_combined.o']
-    netcdf_include = '/opt/local/include'
-    netcdf_lib = '/opt/local/lib'
+    # netcdf_include = '/opt/local/include'
+    # netcdf_lib = '/opt/local/lib'
+    netcdf_include = '/usr/local/include'
+    netcdf_lib = '/usr/local/lib'
     f_compiler = 'gfortran'
 elif 'euler' in platform.node():
     #Compile flags for euler @ ETHZ
@@ -42,7 +44,7 @@ elif 'euler' in platform.node():
     f_compiler = 'gfortran'
 elif platform.machine()  == 'x86_64':
     #Compile flags for fram @ Caltech
-    library_dirs = string.split(os.environ['LD_LIBRARY_PATH'],':')  
+    library_dirs = string.split(os.environ['LD_LIBRARY_PATH'],':')
     libraries = []
     libraries.append('mpi')
     libraries.append('gfortran')

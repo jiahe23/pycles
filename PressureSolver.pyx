@@ -28,6 +28,8 @@ cdef class PressureSolver:
         DV.add_variables('dynamic_pressure', 'Pa', r'p', 'dynamic pressure', 'sym', PM)
         DV.add_variables('divergence', '1/s', r'd', '3d divergence', 'sym',PM)
 
+        DV.add_variables('wBudget_PressureGradient', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+
         self.divergence = np.zeros(Gr.dims.npl,dtype=np.double, order='c')
         #self.poisson_solver = PressureFFTSerial.PressureFFTSerial()
         self.poisson_solver = PressureFFTParallel.PressureFFTParallel()
@@ -47,6 +49,8 @@ cdef class PressureSolver:
             Py_ssize_t w_shift = PV.get_varshift(Gr,'w')
             Py_ssize_t pres_shift = DV.get_varshift(Gr,'dynamic_pressure')
             Py_ssize_t div_shift = DV.get_varshift(Gr,'divergence')
+
+            Py_ssize_t dpdz_shift = DV.get_varshift(Gr,'wBudget_PressureGradient')
 
 
         #Remove mean u3
@@ -73,7 +77,8 @@ cdef class PressureSolver:
 
         #Apply pressure correction
         second_order_pressure_correction(&Gr.dims,&DV.values[pres_shift],
-                                         &PV.values[u_shift],&PV.values[v_shift],&PV.values[w_shift])
+                                         &PV.values[u_shift],&PV.values[v_shift],&PV.values[w_shift],
+                                         &DV.values[dpdz_shift])
 
 
         #Zero the divergence array [Perhaps we can replace this with a C-Call to Memset]
@@ -92,7 +97,7 @@ cdef class PressureSolver:
 
         return
 
-cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, double *u, double *v, double *w ):
+cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, double *u, double *v, double *w, double *press_grad ):
 
     cdef:
         Py_ssize_t imin = 0
@@ -109,6 +114,8 @@ cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, doub
         Py_ssize_t jp1 = jstride
         Py_ssize_t kp1 = 1
 
+        # Py_ssize_t dpdz_shift = DV.get_varshift(Gr,'wBudget_PressureGradient')
+
     for i in xrange(imin,imax):
         ishift = istride * i
         for j in xrange(jmin,jmax):
@@ -118,6 +125,7 @@ cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, doub
                 u[ijk] -=  (p[ijk + ip1] - p[ijk])*dims.dxi[0]
                 v[ijk] -=  (p[ijk + jp1] - p[ijk])*dims.dxi[1]
                 w[ijk] -=  (p[ijk + kp1] - p[ijk])*dims.dxi[2] * dims.imetl[k] #(p[ijk + kp1] - p[ijk])*dims.dxi[2]
+                press_grad[ijk] = -(p[ijk + kp1] - p[ijk])*dims.dxi[2] * dims.imetl[k]
 
 
     return

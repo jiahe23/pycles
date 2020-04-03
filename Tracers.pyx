@@ -273,7 +273,9 @@ cdef class UpdraftTracers:
                         # here we need to start tracer values as T'i
                         dist = np.sqrt(((Gr.x_half[i + Gr.dims.indx_lo[0]]/1000.0 - 10.0)/2.0)**2.0 + ((Gr.z_half[k + Gr.dims.indx_lo[2]]/1000.0 - 2.0)/2.0)**2.0)
                         dist = np.minimum(1.0,dist)
-                        PV.values[var_shift + ijk] = 2.0 * np.cos(np.pi * dist / 2.0)**2.0
+
+                        if dist <= 1.0:
+                            PV.values[var_shift + ijk] = 1
         return
 
     ''' JH '''

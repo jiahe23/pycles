@@ -13,7 +13,7 @@
 void weno_fifth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
     double* restrict alpha0, double* restrict alpha0_half,
     double* restrict vel_advected, double* restrict vel_advecting,
-    double* restrict tendency, ssize_t d_advected, ssize_t d_advecting){
+    double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -182,7 +182,7 @@ void weno_fifth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double
             }
         }
         momentum_flux_divergence(dims, alpha0, alpha0_half, flux,
-                                tendency, d_advected, d_advecting);
+                                tendency, wadv, d_advected, d_advecting);
         free(flux);
         return;
     }
@@ -190,7 +190,7 @@ void weno_fifth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double
 void weno_seventh_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
         double* restrict alpha0, double* restrict alpha0_half,
         double* restrict vel_advected, double* restrict vel_advecting,
-        double* restrict tendency, ssize_t d_advected, ssize_t d_advecting){
+        double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -399,7 +399,7 @@ void weno_seventh_order_m_pt(struct DimStruct *dims, double* restrict rho0, doub
             }
         }
     momentum_flux_divergence(dims, alpha0, alpha0_half, flux,
-                            tendency, d_advected, d_advecting);
+                            tendency, wadv, d_advected, d_advecting);
     free(flux);
     return;
 }
@@ -408,7 +408,7 @@ void weno_seventh_order_m_pt(struct DimStruct *dims, double* restrict rho0, doub
 void weno_ninth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
         double* restrict alpha0, double* restrict alpha0_half,
         double* restrict vel_advected, double* restrict vel_advecting,
-        double* restrict tendency, ssize_t d_advected, ssize_t d_advecting){
+        double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -641,7 +641,7 @@ void weno_ninth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double
             }
         }
     momentum_flux_divergence(dims, alpha0, alpha0_half, flux,
-                            tendency, d_advected, d_advecting);
+                            tendency, wadv, d_advected, d_advecting);
     free(flux);
     return;
 }

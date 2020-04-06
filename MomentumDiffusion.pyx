@@ -50,6 +50,10 @@ cdef class MomentumDiffusion:
         NS.add_profile('sgs_visc_s_source_min',Gr,Pa)
         NS.add_profile('sgs_visc_s_source_max',Gr,Pa)
 
+        DV.add_variables('wBudget_MomentumDiffusion', 'm s^-2', r'wdiff', 'w diffusion', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumDiffusion_TS1', 'm s^-2', r'wdiff_ts1', 'w diffusion', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumDiffusion_TS2', 'm s^-2', r'wdiff_ts2', 'w diffusion', 'sym', Pa)
+
         return
 
     cpdef update(self, Grid.Grid Gr, ReferenceState.ReferenceState Rs, PrognosticVariables.PrognosticVariables PV,
@@ -66,6 +70,7 @@ cdef class MomentumDiffusion:
             Py_ssize_t visc_shift = DV.get_varshift(Gr, 'viscosity')
             Py_ssize_t temp_shift = DV.get_varshift(Gr, 'temperature')
             Py_ssize_t s_shift = PV.get_varshift(Gr, 's')
+            Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
 
         for i1 in xrange(Gr.dims.dims):
             shift_v1 = PV.velocity_directions[i1] * Gr.dims.npg
@@ -74,7 +79,7 @@ cdef class MomentumDiffusion:
 
                 # First we compute the flux
                 compute_diffusive_flux_m(&Gr.dims, &Ke.strain_rate[shift_flux], &DV.values[visc_shift], &self.flux[shift_flux], &Rs.rho0[0], &Rs.rho0_half[0], i1, i2)
-                momentum_flux_divergence(&Gr.dims, &Rs.alpha0[0], &Rs.alpha0_half[0], &self.flux[shift_flux], &PV.tendencies[shift_v1], i1, i2)
+                momentum_flux_divergence(&Gr.dims, &Rs.alpha0[0], &Rs.alpha0_half[0], &self.flux[shift_flux], &PV.tendencies[shift_v1], &DV.values[wdiff_shift], i1, i2)
 
                 count += 1
 
@@ -123,7 +128,3 @@ cdef class MomentumDiffusion:
         tmp = Pa.HorizontalMinimum(Gr, &data[0])
         NS.write_profile('sgs_visc_s_source_min', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
         return
-
-
-
-

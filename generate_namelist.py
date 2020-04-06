@@ -247,7 +247,7 @@ def DryBubble():
     namelist['grid']['nx'] = 100
     namelist['grid']['ny'] = 5
     namelist['grid']['nz'] = 50
-    namelist['grid']['gw'] = 5
+    namelist['grid']['gw'] = 3
     namelist['grid']['dx'] = 200.0
     namelist['grid']['dy'] = 200.0
     namelist['grid']['dz'] = 200.0
@@ -285,7 +285,7 @@ def DryBubble():
     namelist['momentum_transport']['order'] = 5
 
     namelist['scalar_transport'] = {}
-    namelist['scalar_transport']['order'] = 7
+    namelist['scalar_transport']['order'] = 5
 
     namelist['damping'] = {}
     namelist['damping']['scheme'] = 'None'
@@ -310,6 +310,11 @@ def DryBubble():
     namelist['fields_io']['fields_dir'] = 'fields'
     namelist['fields_io']['frequency'] = 100.0
     namelist['fields_io']['diagnostic_fields'] = ['ql','temperature','buoyancy_frequency','viscosity']
+
+    namelist['tracers'] = {}
+    namelist['tracers']['scheme'] = 'UpdraftTracers'
+    namelist['tracers']['use_lcl_tracers'] = False
+    namelist['tracers']['use_tracers'] = True
 
     namelist['meta'] = {}
     namelist['meta']['casename'] = 'DryBubble'

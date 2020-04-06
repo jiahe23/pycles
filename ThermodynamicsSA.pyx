@@ -23,7 +23,7 @@ cdef extern from "thermodynamics_sa.h":
     void eos_c(Lookup.LookupStruct *LT, double(*lam_fp)(double), double(*L_fp)(double, double), double p0, double s, double qt, double *T, double *qv, double *ql, double *qi) nogil
     void eos_update(Grid.DimStruct *dims, Lookup.LookupStruct *LT, double(*lam_fp)(double), double(*L_fp)(double, double), double *p0, double *s, double *qt, double *T,
                     double * qv, double * ql, double * qi, double * alpha)
-    void buoyancy_update_sa(Grid.DimStruct *dims, double *alpha0, double *alpha, double *buoyancy, double *wt)
+    void buoyancy_update_sa(Grid.DimStruct *dims, double *alpha0, double *alpha, double *buoyancy, double *wt, double *wbuoy)
     void bvf_sa(Grid.DimStruct * dims, Lookup.LookupStruct * LT, double(*lam_fp)(double), double(*L_fp)(double, double), double *p0, double *T, double *qt, double *qv, double *theta_rho, double *bvf)
     void thetali_update(Grid.DimStruct *dims, double (*lam_fp)(double), double (*L_fp)(double, double), double *p0, double *T, double *qt, double *ql, double *qi, double *thetali)
     void clip_qt(Grid.DimStruct *dims, double  *qt, double clip_value)
@@ -95,6 +95,10 @@ cdef class ThermodynamicsSA:
         DV.add_variables('qi', 'kg/kg', r'q_i', 'ice water specific humidity', 'sym', Pa)
         DV.add_variables('theta_rho', 'K', r'\theta_{\rho}', 'density potential temperature', 'sym', Pa)
         DV.add_variables('thetali', 'K', r'\theta_l', r'liqiud water potential temperature', 'sym', Pa)
+
+        DV.add_variables('wBudget_Buoyancy', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_TS1', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_TS2', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
 
         # Add statistical output
         NS.add_profile('thetas_mean', Gr, Pa)
@@ -189,6 +193,7 @@ cdef class ThermodynamicsSA:
             Py_ssize_t bvf_shift = DV.get_varshift(Gr, 'buoyancy_frequency')
             Py_ssize_t thr_shift = DV.get_varshift(Gr, 'theta_rho')
             Py_ssize_t thl_shift = DV.get_varshift(Gr, 'thetali')
+            Py_ssize_t wbuoy_shift = DV.get_varshift(Gr,'wBudget_Buoyancy')
 
 
         '''Apply qt clipping if requested. Defaults to on. Call this before other thermodynamic routines. Note that this
@@ -203,7 +208,7 @@ cdef class ThermodynamicsSA:
                     &PV.values[s_shift], &PV.values[qt_shift], &DV.values[t_shift], &DV.values[qv_shift], &DV.values[ql_shift],
                     &DV.values[qi_shift], &DV.values[alpha_shift])
 
-        buoyancy_update_sa(&Gr.dims, &RS.alpha0_half[0], &DV.values[alpha_shift], &DV.values[buoyancy_shift], &PV.tendencies[w_shift])
+        buoyancy_update_sa(&Gr.dims, &RS.alpha0_half[0], &DV.values[alpha_shift], &DV.values[buoyancy_shift], &PV.tendencies[w_shift], &DV.values[wbuoy_shift])
 
         bvf_sa( &Gr.dims, &self.CC.LT.LookupStructC, self.Lambda_fp, self.L_fp, &RS.p0_half[0], &DV.values[t_shift], &PV.values[qt_shift], &DV.values[qv_shift], &DV.values[thr_shift], &DV.values[bvf_shift])
 

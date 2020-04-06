@@ -112,9 +112,14 @@ cdef class TimeStepping:
 
         cdef:
             Py_ssize_t i
+
             Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
             Py_ssize_t wadv_ts1_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_TS1')
             Py_ssize_t wadv_ts2_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_TS2')
+
+            Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
+            Py_ssize_t wdiff_ts1_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_TS1')
+            Py_ssize_t wdiff_ts2_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_TS2')
 
         with nogil:
             if self.rk_step == 0:
@@ -124,12 +129,14 @@ cdef class TimeStepping:
                     PV.tendencies[i] = 0.0
                 for i in xrange(Gr.dims.npg):
                     DV.values[wadv_ts1_shift+i] = DV.values[wadv_shift+i]
+                    DV.values[wdiff_ts1_shift+i] = DV.values[wdiff_shift+i]
             else:
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
                     PV.tendencies[i] = 0.0
                 for i in xrange(Gr.dims.npg):
                     DV.values[wadv_ts2_shift+i] = DV.values[wadv_shift+i]
+                    DV.values[wdiff_ts2_shift+i] = DV.values[wdiff_shift+i]
                 self.t += self.dt
 
         return

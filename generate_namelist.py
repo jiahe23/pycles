@@ -268,8 +268,8 @@ def DryBubble():
     namelist['thermodynamics']['latentheat'] = 'constant'
 
     namelist['microphysics'] = {}
-    # namelist['microphysics']['scheme'] = 'None_SA'
-    namelist['microphysics']['scheme'] = 'None_Dry'
+    namelist['microphysics']['scheme'] = 'None_SA'
+    # namelist['microphysics']['scheme'] = 'None_Dry'
     namelist['microphysics']['phase_partitioning'] = 'liquid_only'
 
     namelist['sgs'] = {}

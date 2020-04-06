@@ -123,13 +123,13 @@ cdef class TimeStepping:
                     PV.values[i] += PV.tendencies[i]*self.dt
                     PV.tendencies[i] = 0.0
                 for i in xrange(Gr.dims.npg):
-                    DV.values[wadv_ts1_shift+1] = DV.values[wadv_shift+1]
+                    DV.values[wadv_ts1_shift+i] = DV.values[wadv_shift+i]
             else:
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
                     PV.tendencies[i] = 0.0
                 for i in xrange(Gr.dims.npg):
-                    DV.values[wadv_ts2_shift+i] = DV.values[wadv_shift+1]
+                    DV.values[wadv_ts2_shift+i] = DV.values[wadv_shift+i]
                 self.t += self.dt
 
         return

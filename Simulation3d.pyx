@@ -183,7 +183,7 @@ class Simulation3d:
                 self.Ra.update(self.Gr, self.RS, self.PV, self.DV, self.Sur, self.TS, self.Pa)
                 self.Budg.update(self.Gr,self.Ra, self.Sur, self.TS, self.Pa)
 #                self.Tr.update_cleanup(self.Gr, self.RS, PV_, DV_, self.Pa, self.TS)
-                self.TS.update(self.Gr, self.PV, self.DV, self.Pa)
+                self.TS.update(self.Gr, self.PV, DV_, self.Pa)
                 PV_.Update_all_bcs(self.Gr, self.Pa)
                 self.Pr.update(self.Gr, self.RS, self.DV, self.PV, self.Pa)
                 self.TS.adjust_timestep(self.Gr, self.PV, self.DV,self.Pa)

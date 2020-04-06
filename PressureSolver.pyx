@@ -29,6 +29,8 @@ cdef class PressureSolver:
         DV.add_variables('divergence', '1/s', r'd', '3d divergence', 'sym',PM)
 
         DV.add_variables('wBudget_PressureGradient', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_PressureGradient_TS1', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_PressureGradient_TS2', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
 
         self.divergence = np.zeros(Gr.dims.npl,dtype=np.double, order='c')
         #self.poisson_solver = PressureFFTSerial.PressureFFTSerial()

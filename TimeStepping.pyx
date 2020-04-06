@@ -125,6 +125,10 @@ cdef class TimeStepping:
             Py_ssize_t wbuoy_ts1_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_TS1')
             Py_ssize_t wbuoy_ts2_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_TS2')
 
+            Py_ssize_t wpress_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
+            Py_ssize_t wpress_ts1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS1')
+            Py_ssize_t wpress_ts2_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS2')
+
         with nogil:
             if self.rk_step == 0:
                 for i in xrange(Gr.dims.npg*PV.nv):
@@ -135,6 +139,7 @@ cdef class TimeStepping:
                     DV.values[wadv_ts1_shift+i] = DV.values[wadv_shift+i]
                     DV.values[wdiff_ts1_shift+i] = DV.values[wdiff_shift+i]
                     DV.values[wbuoy_ts1_shift+i] = DV.values[wbuoy_shift+i]
+                    DV.values[wpress_ts1_shift+i] = DV.values[wpress_shift+i]
             else:
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
@@ -143,6 +148,7 @@ cdef class TimeStepping:
                     DV.values[wadv_ts2_shift+i] = DV.values[wadv_shift+i]
                     DV.values[wdiff_ts2_shift+i] = DV.values[wdiff_shift+i]
                     DV.values[wbuoy_ts2_shift+i] = DV.values[wbuoy_shift+i]
+                    DV.values[wpress_ts2_shift+i] = DV.values[wpress_shift+i]
                 self.t += self.dt
 
         return

@@ -77,10 +77,10 @@ cdef class TimeStepping:
         return
 
 
-    cpdef update(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI Pa):
+    cpdef update(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
 
         if self.ts_type == 2:
-            self.update_second(Gr,PV)
+            self.update_second(Gr,PV,DV)
         elif self.ts_type == 3:
             self.update_third(Gr,PV)
         elif self.ts_type == 4:
@@ -108,10 +108,13 @@ cdef class TimeStepping:
         return
 
 
-    cpdef update_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV):
+    cpdef update_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
 
         cdef:
             Py_ssize_t i
+            Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
+            Py_ssize_t wadv_ts1_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_TS1')
+            Py_ssize_t wadv_ts2_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_TS2')
 
         with nogil:
             if self.rk_step == 0:
@@ -119,10 +122,14 @@ cdef class TimeStepping:
                     self.value_copies[0,i] = PV.values[i]
                     PV.values[i] += PV.tendencies[i]*self.dt
                     PV.tendencies[i] = 0.0
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_ts1_shift+1] = DV.values[wadv_shift+1]
             else:
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
                     PV.tendencies[i] = 0.0
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_ts2_shift+i] = DV.values[wadv_shift+1]
                 self.t += self.dt
 
         return

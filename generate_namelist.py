@@ -258,7 +258,7 @@ def DryBubble():
     namelist['mpi']['nprocz'] = 1
 
     namelist['time_stepping'] = {}
-    namelist['time_stepping']['ts_type'] = 3
+    namelist['time_stepping']['ts_type'] = 2
     namelist['time_stepping']['cfl_limit'] = 0.3
     namelist['time_stepping']['dt_initial'] = 10.0
     namelist['time_stepping']['dt_max'] = 10.0
@@ -268,7 +268,8 @@ def DryBubble():
     namelist['thermodynamics']['latentheat'] = 'constant'
 
     namelist['microphysics'] = {}
-    namelist['microphysics']['scheme'] = 'None_SA'
+    # namelist['microphysics']['scheme'] = 'None_SA'
+    namelist['microphysics']['scheme'] = 'None_Dry'
     namelist['microphysics']['phase_partitioning'] = 'liquid_only'
 
     namelist['sgs'] = {}
@@ -281,7 +282,7 @@ def DryBubble():
     namelist['diffusion']['qt_entropy_source'] = False
 
     namelist['momentum_transport'] = {}
-    namelist['momentum_transport']['order'] = 7
+    namelist['momentum_transport']['order'] = 5
 
     namelist['scalar_transport'] = {}
     namelist['scalar_transport']['order'] = 7

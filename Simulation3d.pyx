@@ -94,7 +94,8 @@ class Simulation3d:
         self.Ke.initialize(self.Gr, self.StatsIO, self.Pa)
 
         self.SA.initialize(self.Gr,self.PV, self.StatsIO, self.Pa)
-        self.MA.initialize(self.Gr,self.PV, self.StatsIO, self.Pa)
+        # self.MA.initialize(self.Gr,self.PV, self.StatsIO, self.Pa)
+        self.MA.initialize(self.DV, self.Pa)
         self.SD.initialize(self.Gr,self.PV,self.DV,self.StatsIO,self.Pa)
         self.MD.initialize(self.Gr,self.PV,self.DV,self.StatsIO, self.Pa)
 
@@ -171,7 +172,8 @@ class Simulation3d:
                 self.Micro.update(self.Gr, self.RS, self.Th,PV_, DV_, self.TS, self.Pa )
 #                 self.Tr.update(self.Gr, self.RS, PV_, DV_, self.TS,self.Pa)
                 self.SA.update(self.Gr,self.RS,PV_, DV_,  self.Pa)
-                self.MA.update(self.Gr,self.RS,PV_,self.Pa)
+                # self.MA.update(self.Gr,self.RS,PV_,self.Pa)
+                self.MA.update(self.Gr,self.RS,PV_,DV_,self.Pa)
                 self.Sur.update(self.Gr, self.RS,self.PV, self.DV,self.Pa,self.TS)
                 self.SGS.update(self.Gr,self.DV,self.PV, self.Ke, self.Sur,self.Pa)
                 self.Damping.update(self.Gr, self.RS,self.PV, self.DV, self.Pa)

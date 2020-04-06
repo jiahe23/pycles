@@ -13,7 +13,7 @@
 void compute_advective_tendencies_m(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
                                 double* restrict alpha0, double* restrict alpha0_half,
                                 double* restrict vel_advected, double* restrict vel_advecting,
-                                double* restrict tendency, ssize_t d_advected, ssize_t d_advecting, int scheme){
+                                double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting, int scheme){
 
     switch(scheme){
         case 2:
@@ -30,7 +30,7 @@ void compute_advective_tendencies_m(struct DimStruct *dims, double* restrict rho
             break;
         case 5:
             weno_fifth_order_m(dims, rho0, rho0_half, alpha0, alpha0_half, vel_advected, vel_advecting,
-                tendency, d_advected, d_advecting);
+                tendency, wadv, d_advected, d_advecting);
             break;
         case 6:
            sixth_order_m(dims, rho0, rho0_half, alpha0, alpha0_half, vel_advected, vel_advecting,

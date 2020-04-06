@@ -24,8 +24,10 @@ cdef class TimeStepping:
 
 
     cpdef initialize(self, namelist, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI Pa)
-    cpdef update(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI Pa)
-    cpdef update_second(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV)
+    # cpdef update(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI Pa)
+    cpdef update(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa)
+    # cpdef update_second(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV)
+    cpdef update_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV)
     cpdef update_third(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV)
     cpdef update_fourth(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV)
 

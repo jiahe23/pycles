@@ -7,7 +7,7 @@
 void fourth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
         double* restrict alpha0, double* restrict alpha0_half,
         double* restrict vel_advected, double* restrict vel_advecting,
-        double* restrict tendency, double* restrict wadv, double *wadv, ssize_t d_advected, ssize_t d_advecting){
+        double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
     // Dynamically allocate flux array
     double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -80,7 +80,7 @@ void fourth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* re
 void sixth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
         double* restrict alpha0, double* restrict alpha0_half,
         double* restrict vel_advected, double* restrict vel_advecting,
-        double* restrict tendency, double* restrict wadv, double *wadv, ssize_t d_advected, ssize_t d_advecting){
+        double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -155,7 +155,7 @@ void sixth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* res
 void eighth_order_m_pt(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
         double* restrict alpha0, double* restrict alpha0_half,
         double* restrict vel_advected, double* restrict vel_advecting,
-        double* restrict tendency, double* restrict wadv, double *wadv, ssize_t d_advected, ssize_t d_advecting){
+        double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);

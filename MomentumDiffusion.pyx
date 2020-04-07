@@ -71,6 +71,10 @@ cdef class MomentumDiffusion:
             Py_ssize_t temp_shift = DV.get_varshift(Gr, 'temperature')
             Py_ssize_t s_shift = PV.get_varshift(Gr, 's')
             Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
+            Py_ssize_t i
+
+        for i in xrange(Gr.dims.npg):
+            DV.values[wdiff_shift+i] = 0.0
 
         for i1 in xrange(Gr.dims.dims):
             shift_v1 = PV.velocity_directions[i1] * Gr.dims.npg

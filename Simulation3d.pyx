@@ -76,6 +76,10 @@ class Simulation3d:
         self.PV.set_velocity_direction('w', 2, self.Pa)
         AuxillaryVariables(namelist, self.PV, self.DV, self.Pa)
 
+        self.DV.add_variables('wBudget_TDC', 'm s^-2', r'wtdc', 'w tdc', 'sym', self.Pa)
+        self.DV.add_variables('wBudget_TDC_TS1', 'm s^-2', r'wtdc_ts1', 'w tdc', 'sym', self.Pa)
+        self.DV.add_variables('wBudget_TDC_TS2', 'm s^-2', r'wtdc_ts2', 'w tdc', 'sym', self.Pa)
+
 
         self.StatsIO.initialize(namelist, self.Gr, self.Pa)
         self.FieldsIO.initialize(namelist, self.Pa)

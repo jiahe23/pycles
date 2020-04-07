@@ -112,6 +112,7 @@ cdef class TimeStepping:
 
         cdef:
             Py_ssize_t i
+            Py_ssize_t w_shift = PV.get_varshift(Gr, 'w')
 
             Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
             Py_ssize_t wadv_ts1_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_TS1')
@@ -125,30 +126,34 @@ cdef class TimeStepping:
             Py_ssize_t wbuoy_ts1_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_TS1')
             Py_ssize_t wbuoy_ts2_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_TS2')
 
-            Py_ssize_t wpress_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
-            Py_ssize_t wpress_ts1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS1')
-            Py_ssize_t wpress_ts2_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS2')
+            Py_ssize_t wtdc_shift = DV.get_varshift(Gr, 'wBudget_TDC')
+            Py_ssize_t wtdc_ts1_shift = DV.get_varshift(Gr, 'wBudget_TDC_TS1')
+            Py_ssize_t wtdc_ts2_shift = DV.get_varshift(Gr, 'wBudget_TDC_TS2')
 
         with nogil:
             if self.rk_step == 0:
-                for i in xrange(Gr.dims.npg*PV.nv):
-                    self.value_copies[0,i] = PV.values[i]
-                    PV.values[i] += PV.tendencies[i]*self.dt
-                    PV.tendencies[i] = 0.0
                 for i in xrange(Gr.dims.npg):
                     DV.values[wadv_ts1_shift+i] = DV.values[wadv_shift+i]
                     DV.values[wdiff_ts1_shift+i] = DV.values[wdiff_shift+i]
                     DV.values[wbuoy_ts1_shift+i] = DV.values[wbuoy_shift+i]
-                    DV.values[wpress_ts1_shift+i] = DV.values[wpress_shift+i]
-            else:
+                    DV.values[wtdc_ts1_shift+i] = PV.tendencies[w_shift+i]
+
                 for i in xrange(Gr.dims.npg*PV.nv):
-                    PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
+                    self.value_copies[0,i] = PV.values[i]
+                    PV.values[i] += PV.tendencies[i]*self.dt
                     PV.tendencies[i] = 0.0
+
+            else:
                 for i in xrange(Gr.dims.npg):
                     DV.values[wadv_ts2_shift+i] = DV.values[wadv_shift+i]
                     DV.values[wdiff_ts2_shift+i] = DV.values[wdiff_shift+i]
                     DV.values[wbuoy_ts2_shift+i] = DV.values[wbuoy_shift+i]
-                    DV.values[wpress_ts2_shift+i] = DV.values[wpress_shift+i]
+                    DV.values[wtdc_ts2_shift+i] = PV.tendencies[w_shift+i]
+
+                for i in xrange(Gr.dims.npg*PV.nv):
+                    PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
+                    PV.tendencies[i] = 0.0
+
                 self.t += self.dt
 
         return

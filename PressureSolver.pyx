@@ -29,8 +29,8 @@ cdef class PressureSolver:
         DV.add_variables('divergence', '1/s', r'd', '3d divergence', 'sym',PM)
 
         DV.add_variables('wBudget_PressureGradient', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
-        DV.add_variables('wBudget_PressureGradient_TS1', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
-        DV.add_variables('wBudget_PressureGradient_TS2', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wtmp_beforeP', 'm/s', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wtmp_afterP', 'm/s', r'pgrad', 'pressure gradient', 'sym', PM)
 
         self.divergence = np.zeros(Gr.dims.npl,dtype=np.double, order='c')
         #self.poisson_solver = PressureFFTSerial.PressureFFTSerial()
@@ -53,6 +53,8 @@ cdef class PressureSolver:
             Py_ssize_t div_shift = DV.get_varshift(Gr,'divergence')
 
             Py_ssize_t dpdz_shift = DV.get_varshift(Gr,'wBudget_PressureGradient')
+            Py_ssize_t wbp_shift = DV.get_varshift(Gr,'wtmp_beforeP')
+            Py_ssize_t wap_shift = DV.get_varshift(Gr,'wtmp_afterP')
 
 
         #Remove mean u3
@@ -78,9 +80,15 @@ cdef class PressureSolver:
         DV.communicate_variable(Gr,PM,p_nv)
 
         #Apply pressure correction
+        for i in xrange(Gr.dims.npg*PV.nv):
+            DV.values[wbp_shift+i] = PV.values[w_shift+i]
+
         second_order_pressure_correction(&Gr.dims,&DV.values[pres_shift],
                                          &PV.values[u_shift],&PV.values[v_shift],&PV.values[w_shift],
                                          &DV.values[dpdz_shift])
+
+        for i in xrange(Gr.dims.npg*PV.nv):
+            DV.values[wap_shift+i] = PV.values[w_shift+i]
 
 
         #Zero the divergence array [Perhaps we can replace this with a C-Call to Memset]

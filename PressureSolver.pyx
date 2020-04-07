@@ -80,14 +80,14 @@ cdef class PressureSolver:
         DV.communicate_variable(Gr,PM,p_nv)
 
         #Apply pressure correction
-        for i in xrange(Gr.dims.npg*PV.nv):
+        for i in xrange(Gr.dims.npg):
             DV.values[wbp_shift+i] = PV.values[w_shift+i]
 
         second_order_pressure_correction(&Gr.dims,&DV.values[pres_shift],
                                          &PV.values[u_shift],&PV.values[v_shift],&PV.values[w_shift],
                                          &DV.values[dpdz_shift])
 
-        for i in xrange(Gr.dims.npg*PV.nv):
+        for i in xrange(Gr.dims.npg):
             DV.values[wap_shift+i] = PV.values[w_shift+i]
 
 

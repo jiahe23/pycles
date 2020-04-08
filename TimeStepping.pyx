@@ -152,7 +152,6 @@ cdef class TimeStepping:
             Py_ssize_t wbuoy_ts1_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_TS1')
             Py_ssize_t wbuoy_ts2_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_TS2')
 
-            Py_ssize_t wtdc_shift = DV.get_varshift(Gr, 'wBudget_TDC')
             Py_ssize_t wtdc_ts1_shift = DV.get_varshift(Gr, 'wBudget_TDC_TS1')
             Py_ssize_t wtdc_ts2_shift = DV.get_varshift(Gr, 'wBudget_TDC_TS2')
 

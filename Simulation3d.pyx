@@ -193,7 +193,7 @@ class Simulation3d:
                 self.TS.update(self.Gr, self.PV, self.DV, self.Pa)
                 PV_.Update_all_bcs(self.Gr, self.Pa)
                 self.Pr.update(self.Gr, self.RS, self.DV, self.PV, self.Pa)
-                self.TS.update_press(self.Gr, self.PV, self.DV, self.Pa)
+                self.TS.update_press(self.Gr, self.PV, self.DV)
                 self.TS.adjust_timestep(self.Gr, self.PV, self.DV,self.Pa)
                 self.io()
                 #PV_.debug(self.Gr,self.RS,self.StatsIO,self.Pa)

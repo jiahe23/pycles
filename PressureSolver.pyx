@@ -29,6 +29,12 @@ cdef class PressureSolver:
         DV.add_variables('divergence', '1/s', r'd', '3d divergence', 'sym',PM)
 
         DV.add_variables('wBudget_PressureGradient', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_PressureGradient_TS1', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_PressureGradient_TS2', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_removeHorAve', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_removeHorAve_TS1', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_removeHorAve_TS2', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+
         DV.add_variables('wtmp_beforeP', 'm/s', r'pgrad', 'pressure gradient', 'sym', PM)
         DV.add_variables('wtmp_afterP', 'm/s', r'pgrad', 'pressure gradient', 'sym', PM)
 
@@ -53,13 +59,15 @@ cdef class PressureSolver:
             Py_ssize_t div_shift = DV.get_varshift(Gr,'divergence')
 
             Py_ssize_t dpdz_shift = DV.get_varshift(Gr,'wBudget_PressureGradient')
+            Py_ssize_t whor_shift = DV.get_varshift(Gr,'wBudget_removeHorAve')
+
             Py_ssize_t wbp_shift = DV.get_varshift(Gr,'wtmp_beforeP')
             Py_ssize_t wap_shift = DV.get_varshift(Gr,'wtmp_afterP')
 
 
         #Remove mean u3
         cdef double [:] u3_mean = PM.HorizontalMean(Gr,&PV.values[w_shift])
-        remove_mean_u3(&Gr.dims,&u3_mean[0],&PV.values[w_shift])
+        remove_mean_u3(&Gr.dims,&u3_mean[0],&PV.values[w_shift],&DV.values[whor_shift])
 
         #Zero the divergence array [Perhaps we can replace this with a C-Call to Memset]
         with nogil:
@@ -141,7 +149,7 @@ cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, doub
     return
 
 
-cdef void remove_mean_u3(Grid.DimStruct *dims, double *u3_mean, double *velocity):
+cdef void remove_mean_u3(Grid.DimStruct *dims, double *u3_mean, double *velocity, double *whor):
 
     cdef:
         Py_ssize_t imin = 0
@@ -163,6 +171,7 @@ cdef void remove_mean_u3(Grid.DimStruct *dims, double *u3_mean, double *velocity
                 for k in xrange(kmin,kmax):
                      ijk = ishift + jshift + k
                      velocity[ijk] = velocity[ijk] - u3_mean[k]
+                     whor[ijk] = -u3_mean[k]
 
     return
 

@@ -107,6 +107,32 @@ cdef class TimeStepping:
 
         return
 
+    cpdef update_press(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
+
+        cdef:
+            Py_ssize_t i
+
+            Py_ssize_t whor_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve')
+            Py_ssize_t whor_ts1_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_TS1')
+            Py_ssize_t whor_ts2_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_TS2')
+
+            Py_ssize_t wpress_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
+            Py_ssize_t wpress_ts1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS1')
+            Py_ssize_t wpress_ts2_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS2')
+
+        with nogil:
+            if self.rk_step == 0:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_ts1_shift+i] = DV.values[whor_shift+i]
+                    DV.values[wpress_ts1_shift+i] = DV.values[wpress_shift+i]
+
+            else:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_ts2_shift+i] = DV.values[whor_shift+i]
+                    DV.values[wpress_ts2_shift+i] = DV.values[wpress_shift+i]
+
+        return
+
 
     cpdef update_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
 

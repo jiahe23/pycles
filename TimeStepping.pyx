@@ -142,7 +142,7 @@ cdef class TimeStepping:
                     DV.values[whor_ts2_shift+i] += DV.values[whor_shift+i]
                     DV.values[wpress_ts2_shift+i] += DV.values[wpress_shift+i]
 
-                    DV.values[press2_shift+i] = DV.values[press1_shift+i]
+                    DV.values[press2_shift+i] = DV.values[press1_shift+i]/self.dt
 
         return
 

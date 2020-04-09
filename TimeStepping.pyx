@@ -128,7 +128,7 @@ cdef class TimeStepping:
                         DV.values[whor_ts1_shift+i] = 0.0
                         DV.values[wpress_ts1_shift+i] = 0.0
                         DV.values[whor_ts2_shift+i] = 0.0
-                        DV.values[wpress_ts2_shift+i] = 0.0  
+                        DV.values[wpress_ts2_shift+i] = 0.0
 
                 for i in xrange(Gr.dims.npg):
                     DV.values[whor_ts1_shift+i] += DV.values[whor_shift+i]
@@ -184,10 +184,10 @@ cdef class TimeStepping:
                         DV.values[wtdc_ts2_shift+i] = 0.0
 
                 for i in xrange(Gr.dims.npg):
-                    DV.values[wadv_ts1_shift+i] += DV.values[wadv_shift+i]
-                    DV.values[wdiff_ts1_shift+i] += DV.values[wdiff_shift+i]
-                    DV.values[wbuoy_ts1_shift+i] += DV.values[wbuoy_shift+i]
-                    DV.values[wtdc_ts1_shift+i] += PV.tendencies[w_shift+i]
+                    DV.values[wadv_ts1_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_ts1_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_ts1_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_ts1_shift+i] += PV.tendencies[w_shift+i]*self.dt
 
                 for i in xrange(Gr.dims.npg*PV.nv):
                     self.value_copies[0,i] = PV.values[i]
@@ -199,10 +199,10 @@ cdef class TimeStepping:
 
             else:
                 for i in xrange(Gr.dims.npg):
-                    DV.values[wadv_ts2_shift+i] += DV.values[wadv_shift+i]
-                    DV.values[wdiff_ts2_shift+i] += DV.values[wdiff_shift+i]
-                    DV.values[wbuoy_ts2_shift+i] += DV.values[wbuoy_shift+i]
-                    DV.values[wtdc_ts2_shift+i] += PV.tendencies[w_shift+i]
+                    DV.values[wadv_ts2_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_ts2_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_ts2_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_ts2_shift+i] += PV.tendencies[w_shift+i]*self.dt
                     # DV.values[wts2_in_shift+i] = PV.values[w_shift+i]
 
                 for i in xrange(Gr.dims.npg*PV.nv):

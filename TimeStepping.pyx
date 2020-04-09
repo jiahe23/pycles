@@ -120,6 +120,9 @@ cdef class TimeStepping:
             Py_ssize_t wpress_ts1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS1')
             Py_ssize_t wpress_ts2_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_TS2')
 
+            Py_ssize_t press2_shift = DV.get_varshift(Gr, 'press2')
+            Py_ssize_t press1_shift = DV.get_varshift(Gr, 'dynamic_pressure')
+
         with nogil:
             if self.rk_step == 0:
 
@@ -138,6 +141,8 @@ cdef class TimeStepping:
                 for i in xrange(Gr.dims.npg):
                     DV.values[whor_ts2_shift+i] += DV.values[whor_shift+i]
                     DV.values[wpress_ts2_shift+i] += DV.values[wpress_shift+i]
+
+                    DV.values[press2_shift+i] = DV.values[press1_shift+i]
 
         return
 

@@ -26,7 +26,10 @@ cdef class PressureSolver:
     cpdef initialize(self,namelist, Grid.Grid Gr,ReferenceState.ReferenceState RS ,DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI PM):
 
         DV.add_variables('dynamic_pressure', 'Pa', r'p', 'dynamic pressure', 'sym', PM)
+        DV.add_variables('press2', 'Pa', r'p', 'dynamic pressure', 'sym', PM)
         DV.add_variables('divergence', '1/s', r'd', '3d divergence', 'sym',PM)
+        DV.add_variables('div1', '1/s', r'd', '3d divergence', 'sym',PM)
+        DV.add_variables('div2', '1/s', r'd', '3d divergence', 'sym',PM)
 
         DV.add_variables('wBudget_PressureGradient', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
         DV.add_variables('wBudget_PressureGradient_TS1', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
@@ -57,6 +60,8 @@ cdef class PressureSolver:
             Py_ssize_t w_shift = PV.get_varshift(Gr,'w')
             Py_ssize_t pres_shift = DV.get_varshift(Gr,'dynamic_pressure')
             Py_ssize_t div_shift = DV.get_varshift(Gr,'divergence')
+            Py_ssize_t div1_shift = DV.get_varshift(Gr,'div1')
+            Py_ssize_t div2_shift = DV.get_varshift(Gr,'div2')
 
             Py_ssize_t dpdz_shift = DV.get_varshift(Gr,'wBudget_PressureGradient')
             Py_ssize_t whor_shift = DV.get_varshift(Gr,'wBudget_removeHorAve')
@@ -64,10 +69,27 @@ cdef class PressureSolver:
             Py_ssize_t wbp_shift = DV.get_varshift(Gr,'wtmp_beforeP')
             Py_ssize_t wap_shift = DV.get_varshift(Gr,'wtmp_afterP')
 
+        #Now compute the momentum divergence before removing w_mean
+        with nogil:
+            for i in xrange(Gr.dims.npg):
+                DV.values[div1_shift + i] = 0.0
+        for d in xrange(Gr.dims.dims):
+            vel_shift = PV.velocity_directions[d]*Gr.dims.npg
+            second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
+                 &DV.values[div1_shift] ,d)
 
         #Remove mean u3
         cdef double [:] u3_mean = PM.HorizontalMean(Gr,&PV.values[w_shift])
         remove_mean_u3(&Gr.dims,&u3_mean[0],&PV.values[w_shift],&DV.values[whor_shift])
+
+        #Now compute the momentum divergence after removing w_mean
+        with nogil:
+            for i in xrange(Gr.dims.npg):
+                DV.values[div2_shift + i] = 0.0
+        for d in xrange(Gr.dims.dims):
+            vel_shift = PV.velocity_directions[d]*Gr.dims.npg
+            second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
+                 &DV.values[div2_shift] ,d)
 
         #Zero the divergence array [Perhaps we can replace this with a C-Call to Memset]
         with nogil:

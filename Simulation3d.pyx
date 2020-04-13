@@ -242,6 +242,10 @@ class Simulation3d:
                 self.Pa.root_print('Finished Doing 3D FieldIO')
 
             # If time to ouput stats do output
+            self.Pa.root_print('last output time = '+str(self.StatsIO.last_output_time))
+            self.Pa.root_print('StatsIO frequency = '+str(self.StatsIO.frequency))
+            self.Pa.root_print('sum of above two = '+str(+self.StatsIO.last_output_timeself.StatsIO.frequency))
+            self.Pa.root_print('current t = '+str(self.TS.t))
             if self.StatsIO.last_output_time + self.StatsIO.frequency == self.TS.t:
                 self.Pa.root_print('Doing StatsIO')
                 self.StatsIO.last_output_time = self.TS.t

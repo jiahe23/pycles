@@ -213,21 +213,32 @@ cdef class UpdraftTracers:
         NS.add_profile('env_thetarho', Gr, Pa, units=r'K', nice_name=r'\theta_{\rho,e}',
                        desc=r'environment density potential temperature')
 
-        NS.add_profile('updraft_dyn_pressure', Gr, Pa, units=r'Pa', nice_name=r'dynamic pressure',
-                       desc=r'updraft dynamic pressure')
-        NS.add_profile('updraft_ddz_p_alpha', Gr, Pa, units=r'm/s^2', nice_name=r'updraft vertical pressure gradient',
-                       desc=r'updraft vertical pressure gradient')
-        NS.add_profile('updraft_u_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'u''p''',
-                       desc=r'updraft dynamic pressure*u')
-        NS.add_profile('updraft_v_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'v''p''',
-                       desc=r'updraft dynamic pressure*v')
-        NS.add_profile('updraft_w_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'w''p''',
-                       desc=r'updraft dynamic pressure*w')
-        NS.add_profile('updraft_alpha', Gr, Pa, units=r'm^{3}kg^{-1}', nice_name=r'alpha_{u}',
-                       desc=r'updraft specific volume')
-        NS.add_profile('env_alpha', Gr, Pa, units=r'm^{3}kg^{-1}', nice_name=r'alpha_{e}',
-                       desc=r'environment specific volume')
+        NS.add_profile('updraft_alpha0_dynamic_pressure', Gr, Pa, units=r'm^2 s^-2 ', nice_name=r'updraft alpha0 * dynamic pressure',
+                       desc=r'updraft alpha0 * dynamic pressure')
+        NS.add_profile('updraft_wBudget_PressureGradient', Gr, Pa, units=r'm/s', nice_name=r'updraft average of pressure gradient force',
+                       desc=r'updraft average of pressure gradient force')
 
+        NS.add_profile('updraft_wBudget_removeHorAve', Gr, Pa, units=r'm/s', nice_name=r'remove grid mean w',
+                      desc=r'remove grid mean w')
+        NS.add_profile('updraft_wBudget_MomentumAdvection', Gr, Pa, units=r'm/s', nice_name=r'updraft average of advection of w',
+                    desc=r'updraft average of advection of w')
+        NS.add_profile('updraft_wBudget_MomentumDiffusion', Gr, Pa, units=r'm/s', nice_name=r'updraft average of diffusion of w',
+                      desc=r'updraft average of diffusion of w')
+        NS.add_profile('updraft_wBudget_Buoyancy', Gr, Pa, units=r'm/s', nice_name=r'updraft average of buoyancy',
+                    desc=r'updraft average of buoyancy')
+
+
+        # # needs to delete
+        # NS.add_profile('updraft_u_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'u''p''',
+        #                desc=r'updraft dynamic pressure*u')
+        # NS.add_profile('updraft_v_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'v''p''',
+        #                desc=r'updraft dynamic pressure*v')
+        # NS.add_profile('updraft_w_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'w''p''',
+        #                desc=r'updraft dynamic pressure*w')
+        # NS.add_profile('updraft_alpha', Gr, Pa, units=r'm^{3}kg^{-1}', nice_name=r'alpha_{u}',
+        #                desc=r'updraft specific volume')
+        # NS.add_profile('env_alpha', Gr, Pa, units=r'm^{3}kg^{-1}', nice_name=r'alpha_{e}',
+        #                desc=r'environment specific volume')
 
 
         if 'ql' in DV.name_index:
@@ -412,7 +423,12 @@ cdef class UpdraftTracers:
             Py_ssize_t bvf_shift = DV.get_varshift(Gr, 'buoyancy_frequency')
             Py_ssize_t thr_shift = DV.get_varshift(Gr, 'theta_rho')
             Py_ssize_t qv_shift = DV.get_varshift(Gr, 'qv')
-            Py_ssize_t p_shift = DV.get_varshift(Gr, 'dynamic_pressure')
+            Py_ssize_t press_shift = DV.get_varshift(Gr, 'press2')
+            Py_ssize_t pz_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
+            Py_ssize_t whor_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve')
+            Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
+            Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
+            Py_ssize_t wbuoy_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy')
             Py_ssize_t alpha_shift = DV.get_varshift(Gr, 'alpha')
             Py_ssize_t ql_shift, th_shift, qr_shift
             double [:] cloudfraction = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
@@ -507,26 +523,38 @@ cdef class UpdraftTracers:
         tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &DV.values[b_shift], &DV.values[b_shift], &self.updraft_indicator[0])
         NS.write_profile('updraft_b2', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[p_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[press_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_alpha0_dynamic_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
-        with nogil:
-            for i in range(Gr.dims.nlg[0]):
-                ishift = i * istride
-                for j in range(Gr.dims.nlg[1]):
-                    jshift = j * jstride
-                    for k in range(kmin,kmax):
-                        ijk = ishift + jshift + k
-                        dpalphadz[ijk] = 0.5*(Ref.alpha0_half[k+1]*DV.values[p_shift+ijk+1]-Ref.alpha0_half[k-1]*DV.values[p_shift+ijk-1])*Gr.dims.dxi[2]
-        tmp = Pa.HorizontalMeanConditional(Gr, &dpalphadz[0], &self.updraft_indicator[0])
-        NS.write_profile('updraft_ddz_p_alpha', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        ## needs to delete
+        # with nogil:
+        #     for i in range(Gr.dims.nlg[0]):
+        #         ishift = i * istride
+        #         for j in range(Gr.dims.nlg[1]):
+        #             jshift = j * jstride
+        #             for k in range(kmin,kmax):
+        #                 ijk = ishift + jshift + k
+        #                 dpalphadz[ijk] = 0.5*(Ref.alpha0_half[k+1]*DV.values[p_shift+ijk+1]-Ref.alpha0_half[k-1]*DV.values[p_shift+ijk-1])*Gr.dims.dxi[2]
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[pz_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_PressureGradient', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
-        tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &w_half[0], &DV.values[p_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_w_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-        tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &u_half[0], &DV.values[p_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_u_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-        tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &v_half[0], &DV.values[p_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_v_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[whor_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_removeHorAve', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wadv_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_MomentumAdvection', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wdiff_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_MomentumDiffusion', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wbuoy_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_Buoyancy', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+
+
+        # # needs to delete
+        # tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &w_half[0], &DV.values[p_shift], &self.updraft_indicator[0])
+        # NS.write_profile('updraft_w_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        # tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &u_half[0], &DV.values[p_shift], &self.updraft_indicator[0])
+        # NS.write_profile('updraft_u_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        # tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &v_half[0], &DV.values[p_shift], &self.updraft_indicator[0])
+        # NS.write_profile('updraft_v_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
 
         tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[alpha_shift], &self.updraft_indicator[0])

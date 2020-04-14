@@ -226,7 +226,8 @@ cdef class UpdraftTracers:
                       desc=r'updraft average of diffusion of w')
         NS.add_profile('updraft_wBudget_Buoyancy', Gr, Pa, units=r'm/s', nice_name=r'updraft average of buoyancy',
                     desc=r'updraft average of buoyancy')
-
+        NS.add_profile('updraft_wBudget_TDC', Gr, Pa, units=r'm/s', nice_name=r'updraft average of w tendency',
+                    desc=r'updraft average of w tendency')
 
         # # needs to delete
         # NS.add_profile('updraft_u_dyn_pressure', Gr, Pa, units=r'm/s Pa', nice_name=r'u''p''',
@@ -429,6 +430,7 @@ cdef class UpdraftTracers:
             Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
             Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
             Py_ssize_t wbuoy_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy')
+            Py_ssize_t wtdc_shift = DV.get_varshift(Gr, 'wBudget_TDC')
             Py_ssize_t alpha_shift = DV.get_varshift(Gr, 'alpha')
             Py_ssize_t ql_shift, th_shift, qr_shift
             double [:] cloudfraction = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
@@ -546,6 +548,8 @@ cdef class UpdraftTracers:
         NS.write_profile('updraft_wBudget_MomentumDiffusion', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
         tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wbuoy_shift], &self.updraft_indicator[0])
         NS.write_profile('updraft_wBudget_Buoyancy', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wtdc_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_TDC', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
 
         # # needs to delete

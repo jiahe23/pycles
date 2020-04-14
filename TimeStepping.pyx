@@ -144,6 +144,8 @@ cdef class TimeStepping:
 
                     DV.values[press2_shift+i] = DV.values[press1_shift+i]/self.dt
 
+            if self.rk_step == 1:
+                for i in xrange(Gr.dims.npg):
                     DV.values[whor_shift+i] = DV.values[whor_ts2_shift+i] + DV.values[whor_ts1_shift+i]*0.5
                     DV.values[wpress_shift+i] = DV.values[wpress_ts2_shift+i] + DV.values[wpress_ts1_shift+i]*0.5
 
@@ -208,16 +210,18 @@ cdef class TimeStepping:
                     DV.values[wbuoy_ts2_shift+i] += DV.values[wbuoy_shift+i]*self.dt
                     DV.values[wtdc_ts2_shift+i] += PV.tendencies[w_shift+i]*self.dt
 
-                    DV.values[wadv_shift+i] = (DV.values[wadv_ts2_shift+i]+DV.values[wadv_ts1_shift+i])*0.5
-                    DV.values[wdiff_shift+i] = (DV.values[wdiff_ts2_shift+i]+DV.values[wdiff_ts1_shift+i])*0.5
-                    DV.values[wbuoy_shift+i] = (DV.values[wbuoy_ts2_shift+i]+DV.values[wbuoy_ts1_shift+i])*0.5
-                    DV.values[wtdc_shift+i] = (DV.values[wtdc_ts2_shift+i]+DV.values[wtdc_ts1_shift+i])*0.5
-
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
                     PV.tendencies[i] = 0.0
 
                 self.t += self.dt
+
+            if self.rk_step == 1:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_shift+i] = (DV.values[wadv_ts2_shift+i]+DV.values[wadv_ts1_shift+i])*0.5
+                    DV.values[wdiff_shift+i] = (DV.values[wdiff_ts2_shift+i]+DV.values[wdiff_ts1_shift+i])*0.5
+                    DV.values[wbuoy_shift+i] = (DV.values[wbuoy_ts2_shift+i]+DV.values[wbuoy_ts1_shift+i])*0.5
+                    DV.values[wtdc_shift+i] = (DV.values[wtdc_ts2_shift+i]+DV.values[wtdc_ts1_shift+i])*0.5
 
         return
 

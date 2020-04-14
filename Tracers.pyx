@@ -557,8 +557,8 @@ cdef class UpdraftTracers:
         # NS.write_profile('updraft_v_dyn_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
 
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[alpha_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_alpha', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        # tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[alpha_shift], &self.updraft_indicator[0])
+        # NS.write_profile('updraft_alpha', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 #        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[alpha_shift], &self.env_indicator[0])
 #        NS.write_profile('env_alpha', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 

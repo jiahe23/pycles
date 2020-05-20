@@ -93,7 +93,7 @@ cdef class UpdraftTracers:
         self.tracer_dict = {}
         self.tracer_dict['surface'] = {}
         self.tracer_dict['surface']['c_srf_15'] = {}
-        self.tracer_dict['surface']['c_srf_15']['timescale'] = 150.0 * 60.0
+        self.tracer_dict['surface']['c_srf_15']['timescale'] = 15.0 * 60.0
         if self.lcl_tracers:
             self.tracer_dict['lcl'] = {}
             self.tracer_dict['lcl']['c_lcl_15'] = {}

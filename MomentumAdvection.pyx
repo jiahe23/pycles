@@ -35,8 +35,9 @@ cdef class MomentumAdvection:
     # cpdef initialize(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):
     cpdef initialize(self, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
         DV.add_variables('wBudget_MomentumAdvection', 'm s^-2', r'wadv', 'w advection', 'sym', Pa)
-        DV.add_variables('wBudget_MomentumAdvection_TS1', 'm s^-2', r'wadv_ts1', 'w advection', 'sym', Pa)
-        DV.add_variables('wBudget_MomentumAdvection_TS2', 'm s^-2', r'wadv_ts2', 'w advection', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumAdvection_RK0', 'm s^-2', r'wadv_rk0', 'w advection', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumAdvection_RK1', 'm s^-2', r'wadv_rk1', 'w advection', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumAdvection_RK2', 'm s^-2', r'wadv_rk1', 'w advection', 'sym', Pa)
         #for i in xrange(Gr.dims.dims):
         #    NS.add_profile(PV.velocity_names_directional[i] + '_flux_z',Gr,Pa)
 

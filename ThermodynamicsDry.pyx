@@ -53,8 +53,9 @@ cdef class ThermodynamicsDry:
         DV.add_variables('theta', r'K', r'\theta','potential tremperature', 'sym', Pa)
 
         DV.add_variables('wBudget_Buoyancy', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
-        DV.add_variables('wBudget_Buoyancy_TS1', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
-        DV.add_variables('wBudget_Buoyancy_TS2', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_RK0', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_RK1', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_RK2', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
 
 
         #Add statistical output

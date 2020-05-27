@@ -439,6 +439,14 @@ cdef class UpdraftTracers:
             double [:] u_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] v_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] w_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+
+            double [:] pz_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+            double [:] whor_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+            double [:] wadv_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+            double [:] wdiff_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+            double [:] wbuoy_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+            double [:] wtdc_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+
             double [:] dpalphadz = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] mean = Pa.HorizontalMean(Gr, &PV.values[c_shift])
             double [:] mean_square = Pa.HorizontalMeanofSquares(Gr, &PV.values[c_shift], &PV.values[c_shift])
@@ -486,6 +494,13 @@ cdef class UpdraftTracers:
                         u_half[ijk] = 0.5 * (PV.values[u_shift+ijk-istride] + PV.values[u_shift+ijk])
                         v_half[ijk] = 0.5 * (PV.values[v_shift+ijk-jstride] + PV.values[v_shift+ijk])
                         w_half[ijk] = 0.5 * (PV.values[w_shift+ijk-1] + PV.values[w_shift+ijk])
+                        wpz_half[ijk] = 0.5 * (PV.values[pz_shift+ijk-1] + PV.values[pz_shift+ijk])
+                        whor_half[ijk] = 0.5 * (PV.values[whor_shift+ijk-1] + PV.values[whor_shift+ijk])
+                        wadv_half[ijk] = 0.5 * (PV.values[wadv_shift+ijk-1] + PV.values[wadv_shift+ijk])
+                        wdiff_half[ijk] = 0.5 * (PV.values[wdiff_shift+ijk-1] + PV.values[wdiff_shift+ijk])
+                        wbuoy_half[ijk] = 0.5 * (PV.values[wbuoy_shift+ijk-1] + PV.values[wbuoy_shift+ijk])
+                        wtdc_half[ijk] = 0.5 * (PV.values[wtdc_shift+ijk-1] + PV.values[wtdc_shift+ijk])
+
 
         tmp = Pa.HorizontalMean(Gr, &self.updraft_indicator[0])
         NS.write_profile('updraft_fraction', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
@@ -511,6 +526,25 @@ cdef class UpdraftTracers:
         tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &PV.values[q_shift], &PV.values[q_shift], &self.updraft_indicator[0])
         NS.write_profile('updraft_qt2', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
+        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[press_shift], &self.updraft_indicator[0])
+        NS.write_profile('updraft_alpha0_dynamic_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+
+
+        tmp = Pa.HorizontalMeanConditional(Gr, &wpz_half[0], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_PressureGradient', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+
+        tmp = Pa.HorizontalMeanConditional(Gr, &whor_half[0], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_removeHorAve', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &wadv_half[0], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_MomentumAdvection', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &wdiff_half[0], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_MomentumDiffusion', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &wbuoy_half[0], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_Buoyancy', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+        tmp = Pa.HorizontalMeanConditional(Gr, &wtdc_half[0], &self.updraft_indicator[0])
+        NS.write_profile('updraft_wBudget_TDC', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+
+
         if 'thetali' in DV.name_index:
             th_shift = DV.get_varshift(Gr, 'thetali')
         else:
@@ -525,8 +559,6 @@ cdef class UpdraftTracers:
         tmp = Pa.HorizontalMeanofSquaresConditional(Gr, &DV.values[b_shift], &DV.values[b_shift], &self.updraft_indicator[0])
         NS.write_profile('updraft_b2', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[press_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_alpha0_dynamic_pressure', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
         ## needs to delete
         # with nogil:
@@ -537,19 +569,6 @@ cdef class UpdraftTracers:
         #             for k in range(kmin,kmax):
         #                 ijk = ishift + jshift + k
         #                 dpalphadz[ijk] = 0.5*(Ref.alpha0_half[k+1]*DV.values[p_shift+ijk+1]-Ref.alpha0_half[k-1]*DV.values[p_shift+ijk-1])*Gr.dims.dxi[2]
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[pz_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_wBudget_PressureGradient', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[whor_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_wBudget_removeHorAve', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wadv_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_wBudget_MomentumAdvection', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wdiff_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_wBudget_MomentumDiffusion', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wbuoy_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_wBudget_Buoyancy', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
-        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[wtdc_shift], &self.updraft_indicator[0])
-        NS.write_profile('updraft_wBudget_TDC', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
 
         # # needs to delete

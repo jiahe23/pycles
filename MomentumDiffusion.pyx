@@ -51,8 +51,9 @@ cdef class MomentumDiffusion:
         NS.add_profile('sgs_visc_s_source_max',Gr,Pa)
 
         DV.add_variables('wBudget_MomentumDiffusion', 'm s^-2', r'wdiff', 'w diffusion', 'sym', Pa)
-        DV.add_variables('wBudget_MomentumDiffusion_TS1', 'm s^-2', r'wdiff_ts1', 'w diffusion', 'sym', Pa)
-        DV.add_variables('wBudget_MomentumDiffusion_TS2', 'm s^-2', r'wdiff_ts2', 'w diffusion', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumDiffusion_RK0', 'm s^-2', r'wdiff_rk0', 'w diffusion', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumDiffusion_RK1', 'm s^-2', r'wdiff_rk1', 'w diffusion', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumDiffusion_RK2', 'm s^-2', r'wdiff_rk1', 'w diffusion', 'sym', Pa)
 
         return
 

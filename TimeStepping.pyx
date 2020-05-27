@@ -235,7 +235,7 @@ cdef class TimeStepping:
         return
 
 
-    cpdef update_third(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV):
+    cpdef update_third(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
         cdef:
             Py_ssize_t i
             Py_ssize_t w_shift = PV.get_varshift(Gr, 'w')

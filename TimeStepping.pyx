@@ -82,7 +82,7 @@ cdef class TimeStepping:
         if self.ts_type == 2:
             self.update_second(Gr,PV,DV)
         elif self.ts_type == 3:
-            self.update_third(Gr,PV)
+            self.update_third(Gr,PV,DV)
         elif self.ts_type == 4:
             self.update_fourth(Gr,PV)
         else:

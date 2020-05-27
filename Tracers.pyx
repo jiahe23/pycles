@@ -440,7 +440,7 @@ cdef class UpdraftTracers:
             double [:] v_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] w_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
 
-            double [:] pz_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
+            double [:] wpz_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] whor_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] wadv_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
             double [:] wdiff_half = np.zeros((Gr.dims.npg),dtype=np.double, order='c')

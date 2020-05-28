@@ -494,12 +494,12 @@ cdef class UpdraftTracers:
                         u_half[ijk] = 0.5 * (PV.values[u_shift+ijk-istride] + PV.values[u_shift+ijk])
                         v_half[ijk] = 0.5 * (PV.values[v_shift+ijk-jstride] + PV.values[v_shift+ijk])
                         w_half[ijk] = 0.5 * (PV.values[w_shift+ijk-1] + PV.values[w_shift+ijk])
-                        wpz_half[ijk] = 0.5 * (PV.values[pz_shift+ijk-1] + PV.values[pz_shift+ijk])
-                        whor_half[ijk] = 0.5 * (PV.values[whor_shift+ijk-1] + PV.values[whor_shift+ijk])
-                        wadv_half[ijk] = 0.5 * (PV.values[wadv_shift+ijk-1] + PV.values[wadv_shift+ijk])
-                        wdiff_half[ijk] = 0.5 * (PV.values[wdiff_shift+ijk-1] + PV.values[wdiff_shift+ijk])
-                        wbuoy_half[ijk] = 0.5 * (PV.values[wbuoy_shift+ijk-1] + PV.values[wbuoy_shift+ijk])
-                        wtdc_half[ijk] = 0.5 * (PV.values[wtdc_shift+ijk-1] + PV.values[wtdc_shift+ijk])
+                        wpz_half[ijk] = 0.5 * (DV.values[pz_shift+ijk-1] + DV.values[pz_shift+ijk])
+                        whor_half[ijk] = 0.5 * (DV.values[whor_shift+ijk-1] + DV.values[whor_shift+ijk])
+                        wadv_half[ijk] = 0.5 * (DV.values[wadv_shift+ijk-1] + DV.values[wadv_shift+ijk])
+                        wdiff_half[ijk] = 0.5 * (DV.values[wdiff_shift+ijk-1] + DV.values[wdiff_shift+ijk])
+                        wbuoy_half[ijk] = 0.5 * (DV.values[wbuoy_shift+ijk-1] + DV.values[wbuoy_shift+ijk])
+                        wtdc_half[ijk] = 0.5 * (DV.values[wtdc_shift+ijk-1] + DV.values[wtdc_shift+ijk])
 
 
         tmp = Pa.HorizontalMean(Gr, &self.updraft_indicator[0])

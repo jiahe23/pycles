@@ -62,6 +62,13 @@ cdef class TimeStepping:
             Pa.root_print('t_max (time at end of simulation) not given in name list! Killing Simulation Now')
             Pa.kill()
 
+        try:
+            self.statIOdt = namelist['stats_io']['frequency']
+        except:
+            Pa.root_print('statsIOfrequency set to dt_max')
+            self.statIOdt = self.dt_max
+
+
         #Now initialize the correct time stepping routine
         if self.ts_type == 2:
             self.initialize_second(PV)
@@ -150,7 +157,8 @@ cdef class TimeStepping:
         with nogil:
             if self.rk_step == 0:
 
-                if self.t % self.dt_max == 0.0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
                     for i in xrange(Gr.dims.npg):
                         DV.values[wrk0_in_shift+i] = PV.values[w_shift+i]
                         DV.values[wadv_rk0_shift+i] = 0.0
@@ -212,7 +220,8 @@ cdef class TimeStepping:
 
         with nogil:
             if self.rk_step == 0:
-                if self.t % self.dt_max == 0.0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
                     for i in xrange(Gr.dims.npg):
                         DV.values[whor_rk0_shift+i] = 0.0
                         DV.values[wpress_rk0_shift+i] = 0.0
@@ -265,7 +274,8 @@ cdef class TimeStepping:
         with nogil:
             if self.rk_step == 0:
 
-                if self.t % self.dt_max == 0.0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
                     for i in xrange(Gr.dims.npg):
                         DV.values[wrk0_in_shift+i] = PV.values[w_shift+i]
                         DV.values[wadv_rk0_shift+i] = 0.0
@@ -345,7 +355,8 @@ cdef class TimeStepping:
 
         with nogil:
             if self.rk_step == 0:
-                if self.t % self.dt_max == 0.0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
                     for i in xrange(Gr.dims.npg):
                         DV.values[whor_rk0_shift+i] = 0.0
                         DV.values[wpress_rk0_shift+i] = 0.0
@@ -443,7 +454,8 @@ cdef class TimeStepping:
 
         with nogil:
             if self.rk_step == 0:
-                if self.t % self.dt_max == 0.0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
                     for i in xrange(Gr.dims.npg):
                         DV.values[whor_rk0_shift+i] = 0.0
                         DV.values[wpress_rk0_shift+i] = 0.0

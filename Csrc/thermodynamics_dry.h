@@ -36,7 +36,7 @@ void eos_update(struct DimStruct *dims, double* restrict pd, double* restrict s,
     return;
 };
 
-void buoyancy_update(struct DimStruct *dims, double* restrict alpha0, double* restrict alpha, double* restrict buoyancy, double* restrict wt){
+void buoyancy_update(struct DimStruct *dims, double* restrict alpha0, double* restrict alpha, double* restrict buoyancy, double* restrict wt, double* restrict wbuoy){
 
     ssize_t i,j,k;
     const ssize_t istride = dims->nlg[1] * dims->nlg[2];
@@ -68,6 +68,7 @@ void buoyancy_update(struct DimStruct *dims, double* restrict alpha0, double* re
             for (k=kmin;k<kmax;k++){
                 const ssize_t ijk = ishift + jshift + k;
                 wt[ijk] += interp_2(buoyancy[ijk],buoyancy[ijk+1]);
+                wbuoy[ijk] = interp_2(buoyancy[ijk],buoyancy[ijk+1]);
             } // End k loop
         } // End j loop
     } // End i loop
@@ -110,5 +111,3 @@ void bvf_dry(struct DimStruct* dims,  double* restrict p0, double* restrict T,do
     } // End i loop
     return;
 }
-
-

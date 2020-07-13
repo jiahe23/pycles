@@ -559,6 +559,7 @@ cdef class SurfaceSoares(SurfaceBase):
 
 cdef class SurfaceSoares_moist(SurfaceBase):
     def __init__(self, LatentHeat LH):
+
         self.z0 = 0.16 #m (Roughness length)
         self.gustiness = 0.001 #m/s, minimum surface windspeed for determination of u*
 
@@ -573,6 +574,7 @@ cdef class SurfaceSoares_moist(SurfaceBase):
     cpdef initialize(self, Grid.Grid Gr, ReferenceState.ReferenceState Ref, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):     # Sullivan
         SurfaceBase.initialize(self,Gr,Ref,NS,Pa)
 
+
         ### Soares_moist
         self.qt_flux = np.add(self.qt_flux,2.5e-5)
         self.theta_flux = 6.0e-2 # K m/s 
@@ -585,7 +587,6 @@ cdef class SurfaceSoares_moist(SurfaceBase):
                               /(self.theta_surface*(1.0 + (eps_vi-1)*self.qt_surface)))
         # # Sullivan:
         # # T0 = Ref.p0_half[Gr.dims.gw] * Ref.alpha0_half[Gr.dims.gw]/Rd
-
         return
 
     @cython.boundscheck(False)  #Turn off numpy array index bounds checking

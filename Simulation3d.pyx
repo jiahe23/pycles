@@ -39,6 +39,7 @@ class Simulation3d:
         return
         
 
+
     def initialize(self, namelist):
         self.Pa = ParallelMPI.ParallelMPI(namelist)
         self.Gr = Grid.Grid(namelist, self.Pa)
@@ -76,6 +77,15 @@ class Simulation3d:
         self.PV.set_velocity_direction('w', 2, self.Pa)
         AuxillaryVariables(namelist, self.PV, self.DV, self.Pa)
 
+        self.DV.add_variables('wBudget_TDC', 'm s^-2', r'wtdc_rk0', 'w tdc', 'sym', self.Pa)
+        self.DV.add_variables('wBudget_TDC_RK0', 'm s^-2', r'wtdc_rk0', 'w tdc', 'sym', self.Pa)
+        self.DV.add_variables('wBudget_TDC_RK1', 'm s^-2', r'wtdc_rk1', 'w tdc', 'sym', self.Pa)
+        self.DV.add_variables('wBudget_TDC_RK2', 'm s^-2', r'wtdc_rk1', 'w tdc', 'sym', self.Pa)
+        self.DV.add_variables('wBudget_TSin', 'm/s', r'wrk0_in', 'w rk0 in', 'sym', self.Pa)
+        # self.DV.add_variables('wBudget_wRK0_out', 'm/s', r'wrk0_out', 'w rk0 out', 'sym', self.Pa)
+        # self.DV.add_variables('wBudget_wRK1_in', 'm/s', r'wrk1_in', 'w rk1 in', 'sym', self.Pa)
+        # self.DV.add_variables('wBudget_TSout', 'm/s', r'wrk1_out', 'w rk1 out', 'sym', self.Pa)
+
 
         self.StatsIO.initialize(namelist, self.Gr, self.Pa)
         self.FieldsIO.initialize(namelist, self.Pa)
@@ -94,7 +104,8 @@ class Simulation3d:
         self.Ke.initialize(self.Gr, self.StatsIO, self.Pa)
 
         self.SA.initialize(self.Gr,self.PV, self.StatsIO, self.Pa)
-        self.MA.initialize(self.Gr,self.PV, self.StatsIO, self.Pa)
+        # self.MA.initialize(self.Gr,self.PV, self.StatsIO, self.Pa)
+        self.MA.initialize(self.DV, self.Pa)
         self.SD.initialize(self.Gr,self.PV,self.DV,self.StatsIO,self.Pa)
         self.MD.initialize(self.Gr,self.PV,self.DV,self.StatsIO, self.Pa)
 
@@ -133,8 +144,17 @@ class Simulation3d:
         self.Budg.initialize(self.Gr, self.StatsIO,self.Pa)
         self.Damping.initialize(self.Gr, self.RS)
         self.Aux.initialize(namelist, self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
+
+        print '======here====='
+
         self.CondStats.initialize(namelist, self.Gr, self.PV, self.DV, self.CondStatsIO, self.Pa)
 
+        if namelist['meta']['casename'] == 'SaturatedBubble':
+            print 'Initialize tracers in saturated bubble'
+            self.Tr.initialize_bubble(self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
+        elif namelist['meta']['casename'] == 'DryBubble':
+            print 'Initialize tracers in dry bubble'
+            self.Tr.initialize_bubble(self.Gr, self.PV, self.DV, self.StatsIO, self.Pa)
 
         return
 
@@ -162,7 +182,9 @@ class Simulation3d:
                 self.Micro.update(self.Gr, self.RS, self.Th,PV_, DV_, self.TS, self.Pa )
                 self.Tr.update(self.Gr, self.RS, PV_, DV_, self.TS,self.Pa)
                 self.SA.update(self.Gr,self.RS,PV_, DV_,  self.Pa)
-                self.MA.update(self.Gr,self.RS,PV_,self.Pa)
+                # self.MA.update(self.Gr,self.RS,PV_,self.Pa)
+                self.MA.update(self.Gr,self.RS,PV_,DV_,self.Pa)
+
                 self.Sur.update(self.Gr, self.RS,self.PV, self.DV,self.Pa,self.TS)
                 self.SGS.update(self.Gr,self.DV,self.PV, self.Ke, self.Sur,self.Pa)
                 self.Damping.update(self.Gr, self.RS,self.PV, self.DV, self.Pa)
@@ -172,9 +194,11 @@ class Simulation3d:
                 self.Ra.update(self.Gr, self.RS, self.PV, self.DV, self.Sur, self.TS, self.Pa)
                 self.Budg.update(self.Gr,self.Ra, self.Sur, self.TS, self.Pa)
                 self.Tr.update_cleanup(self.Gr, self.RS, PV_, DV_, self.Pa, self.TS)
-                self.TS.update(self.Gr, self.PV, self.Pa)
+                self.TS.update(self.Gr, self.PV, self.DV, self.Pa)
                 PV_.Update_all_bcs(self.Gr, self.Pa)
                 self.Pr.update(self.Gr, self.RS, self.DV, self.PV, self.Pa)
+                self.TS.update_pressure(self.Gr, self.PV, self.DV, self.Pa)
+
                 self.TS.adjust_timestep(self.Gr, self.PV, self.DV,self.Pa)
                 self.io()
                 #PV_.debug(self.Gr,self.RS,self.StatsIO,self.Pa)
@@ -214,7 +238,8 @@ class Simulation3d:
             self.TS.dt = np.amin(dts[dts > 0.0])
             # If time to ouptut fields do output
             if self.FieldsIO.last_output_time + self.FieldsIO.frequency == self.TS.t:
-                self.Pa.root_print('Doing 3D FieldIO')
+                self.Pa.root_print('Doing 3D FieldIO at T='+str(self.TS.t))
+
                 # self.Th.update(self.Gr, self.RS, self.PV, self.DV)
                 self.FieldsIO.last_output_time = self.TS.t
                 self.FieldsIO.update(self.Gr, self.PV, self.DV, self.TS, self.Pa)
@@ -323,4 +348,3 @@ class Simulation3d:
         self.Aux.stats_io(self.Gr, self.RS, self.PV, self.DV, self.MA, self.MD, self.StatsIO, self.Pa)
         self.StatsIO.close_files(self.Pa)
         return
-

@@ -23,8 +23,11 @@ if sys.platform == 'darwin':
     extra_compile_args = []
     extra_compile_args += ['-O3', '-march=native', '-Wno-unused', '-Wno-#warnings','-fPIC']
     extra_objects=['./RRTMG/rrtmg_build/rrtmg_combined.o']
-    netcdf_include = '/opt/local/include'
-    netcdf_lib = '/opt/local/lib'
+    # netcdf_include = '/opt/local/include'
+    # netcdf_lib = '/opt/local/lib'
+    netcdf_include = '/usr/local/include'
+    netcdf_lib = '/usr/local/lib'
+
     f_compiler = 'gfortran'
 elif 'euler' in platform.node():
     #Compile flags for euler @ ETHZ

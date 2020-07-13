@@ -413,7 +413,7 @@ void accretion_all(double density, double p0, double temperature, double ccn, do
         k_2r = (1.0/(pow(rain_lam, 3.0)*pow(snow_lam, 3.0)) + 3.0/(pow(rain_lam, 2.0)*pow(snow_lam, 4.0))
                 + 6.0/(rain_lam*pow(snow_lam, 5.0)));
         if( temperature < 273.16 ){
-            src_s = pi*dv*nsnow*nrain*A_RAIN*k_2s/density;
+            src_s =  pi*dv*nsnow*nrain*A_RAIN*k_2s/density;
             src_r = -src_s;
         }
         else{

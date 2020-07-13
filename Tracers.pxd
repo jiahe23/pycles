@@ -34,11 +34,14 @@ cdef class UpdraftTracers:
         double timescale
         Py_ssize_t index_lcl
         dict tracer_dict
+        str casename
         double cloud_base
         double cloud_top
         double [:] updraft_indicator
 
     cpdef initialize(self, Grid.Grid Gr,  PrognosticVariables.PrognosticVariables PV,
+                     DiagnosticVariables.DiagnosticVariables DV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa)
+    cpdef initialize_bubble(self, Grid.Grid Gr,  PrognosticVariables.PrognosticVariables PV,
                      DiagnosticVariables.DiagnosticVariables DV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa)
     cpdef update(self, Grid.Grid Gr, ReferenceState.ReferenceState Ref, PrognosticVariables.PrognosticVariables PV,
                  DiagnosticVariables.DiagnosticVariables DV, TimeStepping.TimeStepping TS, ParallelMPI.ParallelMPI Pa)

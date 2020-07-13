@@ -125,9 +125,9 @@ cdef class Microphysics_Arctic_1M:
                 LH.Lambda_fp = lambda_logistic
                 Par.root_print('Liquid fraction formulation not recognized! Using default logistic function as liquid fraction!')
         except:
-            self.Lambda_fp = lambda_logistic
-            LH.Lambda_fp = lambda_logistic
-            Par.root_print('Using default logistic function as liquid fraction!')
+            self.Lambda_fp = lambda_Arctic
+            LH.Lambda_fp = lambda_Arctic
+
 
 
         LH.L_fp = latent_heat_Arctic

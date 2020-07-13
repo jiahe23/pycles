@@ -7,7 +7,7 @@
 void fourth_order_ws_m(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
     double* restrict alpha0, double* restrict alpha0_half,
     double* restrict vel_advected, double* restrict vel_advecting,
-    double* restrict tendency, ssize_t d_advected, ssize_t d_advecting){
+    double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -73,7 +73,7 @@ void fourth_order_ws_m(struct DimStruct *dims, double* restrict rho0, double* re
         }
 
         momentum_flux_divergence(dims, alpha0, alpha0_half, flux,
-                                tendency, d_advected, d_advecting);
+                                tendency, wadv, d_advected, d_advecting);
         free(flux);
         return;
     }
@@ -81,7 +81,7 @@ void fourth_order_ws_m(struct DimStruct *dims, double* restrict rho0, double* re
  void sixth_order_ws_m(struct DimStruct *dims, double* restrict rho0, double* restrict rho0_half,
     double* restrict alpha0, double* restrict alpha0_half,
     double* restrict vel_advected, double* restrict vel_advecting,
-    double* restrict tendency, ssize_t d_advected, ssize_t d_advecting){
+    double* restrict tendency, double* restrict wadv, ssize_t d_advected, ssize_t d_advecting){
 
         // Dynamically allocate flux array
         double *flux = (double *)malloc(sizeof(double)*dims->nlg[0] * dims->nlg[1] * dims->nlg[2]);
@@ -150,7 +150,7 @@ void fourth_order_ws_m(struct DimStruct *dims, double* restrict rho0, double* re
             }
         }
         momentum_flux_divergence(dims, alpha0, alpha0_half, flux,
-                                tendency, d_advected, d_advecting);
+                                tendency, wadv, d_advected, d_advecting);
         free(flux);
         return;
     }

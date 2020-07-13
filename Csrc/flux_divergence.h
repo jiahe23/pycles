@@ -48,7 +48,7 @@ void scalar_flux_divergence(struct DimStruct *dims, double *alpha0, double *alph
 }
 
 void momentum_flux_divergence(struct DimStruct *dims, double *alpha0, double *alpha0_half, double *flux,
-                                double *tendency, ssize_t d_advected, ssize_t d_advecting){
+                                double *tendency, double *wadv, ssize_t d_advected, ssize_t d_advecting){
 
     const ssize_t imin = dims->gw;
     const ssize_t jmin = dims->gw;
@@ -90,6 +90,7 @@ void momentum_flux_divergence(struct DimStruct *dims, double *alpha0, double *al
                     for(ssize_t k=kmin; k<kmax; k++){
                         const ssize_t ijk = ishift + jshift + k;
                         tendency[ijk] -= alpha0[k] * (flux[ijk] - flux[ijk + sm1])*dxi * imetl[k];
+                        wadv[ijk] -= alpha0[k] * (flux[ijk] - flux[ijk + sm1])*dxi * imetl[k];
                     } // End k loop
                 } // End j loop
             } // End i loop
@@ -117,6 +118,7 @@ void momentum_flux_divergence(struct DimStruct *dims, double *alpha0, double *al
                     for(ssize_t k=kmin; k<kmax; k++){
                         const ssize_t ijk = ishift + jshift + k;
                         tendency[ijk] -= alpha0[k] * (flux[ijk] - flux[ijk + sm1])*dxi;
+                        wadv[ijk] -= alpha0[k] * (flux[ijk] - flux[ijk + sm1])*dxi;
                     } // End k loop
                 } // End j loop
             } // End i loop

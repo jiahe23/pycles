@@ -62,6 +62,13 @@ cdef class TimeStepping:
             Pa.root_print('t_max (time at end of simulation) not given in name list! Killing Simulation Now')
             Pa.kill()
 
+        try:
+            self.statIOdt = namelist['stats_io']['frequency']
+        except:
+            Pa.root_print('statsIOfrequency set to dt_max')
+            self.statIOdt = self.dt_max
+
+
         #Now initialize the correct time stepping routine
         if self.ts_type == 2:
             self.initialize_second(PV)
@@ -77,12 +84,12 @@ cdef class TimeStepping:
         return
 
 
-    cpdef update(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI Pa):
+    cpdef update(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
 
         if self.ts_type == 2:
-            self.update_second(Gr,PV)
+            self.update_second(Gr,PV,DV)
         elif self.ts_type == 3:
-            self.update_third(Gr,PV)
+            self.update_third(Gr,PV,DV)
         elif self.ts_type == 4:
             self.update_fourth(Gr,PV)
         else:
@@ -90,6 +97,21 @@ cdef class TimeStepping:
             Pa.root_print('Killing Simulation Now!')
             Pa.kill()
         return
+
+    cpdef update_pressure(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
+
+        if self.ts_type == 2:
+            self.update_pressure_second(Gr,PV,DV)
+        elif self.ts_type == 3:
+            self.update_pressure_third(Gr,PV,DV)
+        elif self.ts_type == 4:
+            self.update_pressure_fourth(Gr,PV,DV)
+        else:
+            Pa.root_print('Time stepping option not found ts_type = ' + str(self.ts_type))
+            Pa.root_print('Killing Simulation Now!')
+            Pa.kill()
+        return
+
 
     cpdef adjust_timestep(self,Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
         #Compute the CFL number and diffusive stability criterion
@@ -108,47 +130,275 @@ cdef class TimeStepping:
         return
 
 
-    cpdef update_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV):
+    cpdef update_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
 
         cdef:
             Py_ssize_t i
+            Py_ssize_t w_shift = PV.get_varshift(Gr, 'w')
+
+            Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
+            Py_ssize_t wadv_rk0_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_RK0')
+            Py_ssize_t wadv_rk1_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_RK1')
+
+            Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
+            Py_ssize_t wdiff_rk0_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_RK0')
+            Py_ssize_t wdiff_rk1_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_RK1')
+
+            Py_ssize_t wbuoy_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy')
+            Py_ssize_t wbuoy_rk0_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_RK0')
+            Py_ssize_t wbuoy_rk1_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_RK1')
+
+            Py_ssize_t wtdc_shift = DV.get_varshift(Gr, 'wBudget_TDC')
+            Py_ssize_t wtdc_rk0_shift = DV.get_varshift(Gr, 'wBudget_TDC_RK0')
+            Py_ssize_t wtdc_rk1_shift = DV.get_varshift(Gr, 'wBudget_TDC_RK1')
+
+            Py_ssize_t wrk0_in_shift = DV.get_varshift(Gr, 'wBudget_TSin')
 
         with nogil:
             if self.rk_step == 0:
+
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
+                    for i in xrange(Gr.dims.npg):
+                        DV.values[wrk0_in_shift+i] = PV.values[w_shift+i]
+                        DV.values[wadv_rk0_shift+i] = 0.0
+                        DV.values[wdiff_rk0_shift+i] = 0.0
+                        DV.values[wbuoy_rk0_shift+i] = 0.0
+                        DV.values[wtdc_rk0_shift+i] = 0.0
+                        DV.values[wadv_rk1_shift+i] = 0.0
+                        DV.values[wdiff_rk1_shift+i] = 0.0
+                        DV.values[wbuoy_rk1_shift+i] = 0.0
+                        DV.values[wtdc_rk1_shift+i] = 0.0
+
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_rk0_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_rk0_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_rk0_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_rk0_shift+i] += PV.tendencies[w_shift+i]*self.dt
+
                 for i in xrange(Gr.dims.npg*PV.nv):
                     self.value_copies[0,i] = PV.values[i]
                     PV.values[i] += PV.tendencies[i]*self.dt
                     PV.tendencies[i] = 0.0
+
+
             else:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_rk1_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_rk1_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_rk1_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_rk1_shift+i] += PV.tendencies[w_shift+i]*self.dt
+
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.5 * (self.value_copies[0,i] + PV.values[i] + PV.tendencies[i] * self.dt)
                     PV.tendencies[i] = 0.0
+
                 self.t += self.dt
+
+            if self.rk_step == 1:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_shift+i] = (DV.values[wadv_rk1_shift+i]+DV.values[wadv_rk0_shift+i])*0.5
+                    DV.values[wdiff_shift+i] = (DV.values[wdiff_rk1_shift+i]+DV.values[wdiff_rk0_shift+i])*0.5
+                    DV.values[wbuoy_shift+i] = (DV.values[wbuoy_rk1_shift+i]+DV.values[wbuoy_rk0_shift+i])*0.5
+                    DV.values[wtdc_shift+i] = (DV.values[wtdc_rk1_shift+i]+DV.values[wtdc_rk0_shift+i])*0.5
+
+        return
+
+    cpdef update_pressure_second(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
+        cdef:
+            Py_ssize_t i
+            Py_ssize_t press_shift = DV.get_varshift(Gr, 'dynamic_pressure')
+            Py_ssize_t pb_shift = DV.get_varshift(Gr, 'buoyancy_pressure')
+
+            Py_ssize_t whor_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve')
+            Py_ssize_t whor_rk0_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK0')
+            Py_ssize_t whor_rk1_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK1')
+
+            Py_ssize_t wpress_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
+            Py_ssize_t wpress_rk0_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK0')
+            Py_ssize_t wpress_rk1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK1')
+
+            Py_ssize_t wpb_shift = DV.get_varshift(Gr, 'wBudget_BuoyancyPressureGradient')
+            Py_ssize_t wpb_rk0_shift = DV.get_varshift(Gr, 'wBudget_BuoyancyPressureGradient_RK0')
+            Py_ssize_t wpb_rk1_shift = DV.get_varshift(Gr, 'wBudget_BuoyancyPressureGradient_RK1')
+
+
+        with nogil:
+            if self.rk_step == 0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
+                    for i in xrange(Gr.dims.npg):
+                        DV.values[whor_rk0_shift+i] = 0.0
+                        DV.values[wpress_rk0_shift+i] = 0.0
+                        DV.values[wpb_rk0_shift+i] = 0.0
+                        DV.values[whor_rk1_shift+i] = 0.0
+                        DV.values[wpress_rk1_shift+i] = 0.0
+                        DV.values[wpb_rk1_shift+i] = 0.0
+
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk0_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk0_shift+i] += DV.values[wpress_shift+i]
+                    DV.values[wpb_rk0_shift+i] += DV.values[wpb_shift+i]
+            else:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk1_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk1_shift+i] += DV.values[wpress_shift+i]
+                    DV.values[wpb_rk1_shift+i] += DV.values[wpb_shift+i]
+
+                    DV.values[press_shift+i] = DV.values[press_shift+i]/self.dt
+                    DV.values[pb_shift+i] = DV.values[pb_shift+i]
+
+                    DV.values[whor_shift+i] = DV.values[whor_rk1_shift+i] + DV.values[whor_rk0_shift+i]*0.5
+                    DV.values[wpress_shift+i] = DV.values[wpress_rk1_shift+i] + DV.values[wpress_rk0_shift+i]*0.5
+                    DV.values[wpb_shift+i] = DV.values[wpb_rk1_shift+i] + DV.values[wpb_rk0_shift+i]*0.5
 
         return
 
 
-    cpdef update_third(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV):
+    cpdef update_third(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
         cdef:
             Py_ssize_t i
+            Py_ssize_t w_shift = PV.get_varshift(Gr, 'w')
+
+            Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
+            Py_ssize_t wadv_rk0_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_RK0')
+            Py_ssize_t wadv_rk1_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_RK1')
+            Py_ssize_t wadv_rk2_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection_RK2')
+
+            Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
+            Py_ssize_t wdiff_rk0_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_RK0')
+            Py_ssize_t wdiff_rk1_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_RK1')
+            Py_ssize_t wdiff_rk2_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion_RK2')
+
+            Py_ssize_t wbuoy_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy')
+            Py_ssize_t wbuoy_rk0_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_RK0')
+            Py_ssize_t wbuoy_rk1_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_RK1')
+            Py_ssize_t wbuoy_rk2_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy_RK2')
+
+            Py_ssize_t wtdc_shift = DV.get_varshift(Gr, 'wBudget_TDC')
+            Py_ssize_t wtdc_rk0_shift = DV.get_varshift(Gr, 'wBudget_TDC_RK0')
+            Py_ssize_t wtdc_rk1_shift = DV.get_varshift(Gr, 'wBudget_TDC_RK1')
+            Py_ssize_t wtdc_rk2_shift = DV.get_varshift(Gr, 'wBudget_TDC_RK2')
+
+            Py_ssize_t wrk0_in_shift = DV.get_varshift(Gr, 'wBudget_TSin')
 
         with nogil:
             if self.rk_step == 0:
+
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
+                    for i in xrange(Gr.dims.npg):
+                        DV.values[wrk0_in_shift+i] = PV.values[w_shift+i]
+                        DV.values[wadv_rk0_shift+i] = 0.0
+                        DV.values[wdiff_rk0_shift+i] = 0.0
+                        DV.values[wbuoy_rk0_shift+i] = 0.0
+                        DV.values[wtdc_rk0_shift+i] = 0.0
+                        DV.values[wadv_rk1_shift+i] = 0.0
+                        DV.values[wdiff_rk1_shift+i] = 0.0
+                        DV.values[wbuoy_rk1_shift+i] = 0.0
+                        DV.values[wtdc_rk1_shift+i] = 0.0
+                        DV.values[wadv_rk2_shift+i] = 0.0
+                        DV.values[wdiff_rk2_shift+i] = 0.0
+                        DV.values[wbuoy_rk2_shift+i] = 0.0
+                        DV.values[wtdc_rk2_shift+i] = 0.0
+
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_rk0_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_rk0_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_rk0_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_rk0_shift+i] += PV.tendencies[w_shift+i]*self.dt
+
                 for i in xrange(Gr.dims.npg*PV.nv):
                     self.value_copies[0,i] = PV.values[i]
                     PV.values[i] += PV.tendencies[i]*self.dt
                     PV.tendencies[i] = 0.0
+
             elif self.rk_step == 1:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_rk1_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_rk1_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_rk1_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_rk1_shift+i] += PV.tendencies[w_shift+i]*self.dt
+
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = 0.75 * self.value_copies[0,i] +  0.25*(PV.values[i] + PV.tendencies[i]*self.dt)
                     PV.tendencies[i] = 0.0
             else:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_rk2_shift+i] += DV.values[wadv_shift+i]*self.dt
+                    DV.values[wdiff_rk2_shift+i] += DV.values[wdiff_shift+i]*self.dt
+                    DV.values[wbuoy_rk2_shift+i] += DV.values[wbuoy_shift+i]*self.dt
+                    DV.values[wtdc_rk2_shift+i] += PV.tendencies[w_shift+i]*self.dt
+
                 for i in xrange(Gr.dims.npg*PV.nv):
                     PV.values[i] = (1.0/3.0) * self.value_copies[0,i] + (2.0/3.0)*(PV.values[i] + PV.tendencies[i]*self.dt)
                     PV.tendencies[i] = 0.0
                 self.t += self.dt
 
+            if self.rk_step == 2:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[wadv_shift+i] = (DV.values[wadv_rk2_shift+i]*2.0/3.0
+                                                +DV.values[wadv_rk1_shift+i]/6.0+DV.values[wadv_rk0_shift+i]/6.0)
+                    DV.values[wdiff_shift+i] = (DV.values[wdiff_rk2_shift+i]*2.0/3.0
+                                                +DV.values[wdiff_rk1_shift+i]/6.0+DV.values[wdiff_rk0_shift+i]/6.0)
+                    DV.values[wbuoy_shift+i] = (DV.values[wbuoy_rk2_shift+i]*2.0/3.0
+                                                +DV.values[wbuoy_rk1_shift+i]/6.0+DV.values[wbuoy_rk0_shift+i]/6.0)
+                    DV.values[wtdc_shift+i] = (DV.values[wtdc_rk2_shift+i]*2.0/3.0
+                                                +DV.values[wtdc_rk1_shift+i]/6.0+DV.values[wtdc_rk0_shift+i]/6.0)
+
+
         return
+
+    cpdef update_pressure_third(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
+        cdef:
+            Py_ssize_t i
+            Py_ssize_t press_shift = DV.get_varshift(Gr, 'dynamic_pressure')
+
+            Py_ssize_t whor_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve')
+            Py_ssize_t whor_rk0_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK0')
+            Py_ssize_t whor_rk1_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK1')
+            Py_ssize_t whor_rk2_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK2')
+
+            Py_ssize_t wpress_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
+            Py_ssize_t wpress_rk0_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK0')
+            Py_ssize_t wpress_rk1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK1')
+            Py_ssize_t wpress_rk2_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK2')
+
+        with nogil:
+            if self.rk_step == 0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
+                    for i in xrange(Gr.dims.npg):
+                        DV.values[whor_rk0_shift+i] = 0.0
+                        DV.values[wpress_rk0_shift+i] = 0.0
+                        DV.values[whor_rk1_shift+i] = 0.0
+                        DV.values[wpress_rk1_shift+i] = 0.0
+                        DV.values[whor_rk2_shift+i] = 0.0
+                        DV.values[wpress_rk2_shift+i] = 0.0
+
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk0_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk0_shift+i] += DV.values[wpress_shift+i]
+
+            elif self.rk_step == 1:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk1_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk1_shift+i] += DV.values[wpress_shift+i]
+
+            else:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk2_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk2_shift+i] += DV.values[wpress_shift+i]
+
+                    DV.values[press_shift+i] = DV.values[press_shift+i]/self.dt
+
+                    DV.values[whor_shift+i] = (DV.values[whor_rk2_shift+i] + (2.0/3.0)*DV.values[whor_rk1_shift+i]
+                                               + (1.0/6.0)*DV.values[whor_rk0_shift+i] )
+                    DV.values[wpress_shift+i] = (DV.values[wpress_rk2_shift+i] + (2.0/3.0)*DV.values[wpress_rk1_shift+i]
+                                               + (1.0/6.0)*DV.values[wpress_rk0_shift+i] )
+
+        return
+
 
     cpdef update_fourth(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV):
         cdef:
@@ -186,6 +436,81 @@ cdef class TimeStepping:
                     PV.tendencies[i] = 0.0
                 self.t += self.dt
         return
+
+    cpdef update_pressure_fourth(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV):
+        cdef:
+            Py_ssize_t i
+            Py_ssize_t press_shift = DV.get_varshift(Gr, 'dynamic_pressure')
+
+            Py_ssize_t whor_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve')
+            Py_ssize_t whor_rk0_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK0')
+            Py_ssize_t whor_rk1_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK1')
+            Py_ssize_t whor_rk2_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK2')
+            Py_ssize_t whor_rk3_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK3')
+            Py_ssize_t whor_rk4_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK4')
+
+            Py_ssize_t wpress_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient')
+            Py_ssize_t wpress_rk0_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK0')
+            Py_ssize_t wpress_rk1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK1')
+            Py_ssize_t wpress_rk2_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK2')
+            Py_ssize_t wpress_rk3_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK3')
+            Py_ssize_t wpress_rk4_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK4')
+
+            double a1, a2, a3
+
+        a1 = 0.386708617503269
+        a2 = 0.096059710526147+a1*0.821920045606868
+        a3 = 0.517231671970585+a2*0.379898148511597
+        a4 = 0.555629506348765*a3
+
+        with nogil:
+            if self.rk_step == 0:
+                # if self.t % self.dt_max == 0.0:
+                if self.t % self.statIOdt == 0.0:
+                    for i in xrange(Gr.dims.npg):
+                        DV.values[whor_rk0_shift+i] = 0.0
+                        DV.values[wpress_rk0_shift+i] = 0.0
+                        DV.values[whor_rk1_shift+i] = 0.0
+                        DV.values[wpress_rk1_shift+i] = 0.0
+                        DV.values[whor_rk2_shift+i] = 0.0
+                        DV.values[wpress_rk2_shift+i] = 0.0
+
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk0_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk0_shift+i] += DV.values[wpress_shift+i]
+
+            elif self.rk_step == 1:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk1_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk1_shift+i] += DV.values[wpress_shift+i]
+
+            elif self.rk_step == 2:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk2_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk2_shift+i] += DV.values[wpress_shift+i]
+
+            elif self.rk_step == 3:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk3_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk3_shift+i] += DV.values[wpress_shift+i]
+
+            else:
+                for i in xrange(Gr.dims.npg):
+                    DV.values[whor_rk4_shift+i] += DV.values[whor_shift+i]
+                    DV.values[wpress_rk4_shift+i] += DV.values[wpress_shift+i]
+
+                    DV.values[press_shift+i] = DV.values[press_shift+i]/self.dt
+
+                    DV.values[whor_shift+i] = (DV.values[whor_rk3_shift+i] + a1*DV.values[whor_rk2_shift+i]
+                                               + a2*DV.values[whor_rk1_shift+i] + a3*DV.values[whor_rk0_shift+i] )
+
+                    DV.values[wpress_shift+i] = (DV.values[wpress_rk4_shift+i] + a1*DV.values[wpress_rk3_shift+i]
+                                               + a2*DV.values[wpress_rk2_shift+i] + a3*DV.values[wpress_rk1_shift+i]
+                                               + a4*DV.values[wpress_rk0_shift+i] )
+
+        return
+
+
 
     cdef void initialize_second(self,PrognosticVariables.PrognosticVariables PV):
 

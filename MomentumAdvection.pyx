@@ -6,6 +6,7 @@
 
 cimport Grid
 cimport PrognosticVariables
+cimport DiagnosticVariables
 cimport ParallelMPI
 cimport ReferenceState
 from NetCDFIO cimport NetCDFIO_Stats
@@ -17,7 +18,7 @@ cimport numpy as np
 cdef extern from "momentum_advection.h":
     void compute_advective_tendencies_m(Grid.DimStruct *dims, double *rho0, double *rho0_half,
                                     double *alpha0, double *alpha0_half, double *vel_advected,
-                                    double *vel_advecting, double *tendency, Py_ssize_t d_advected,
+                                    double *vel_advecting, double *tendency, double *wadv, Py_ssize_t d_advected,
                                     Py_ssize_t d_advecting, Py_ssize_t scheme) nogil
 cdef class MomentumAdvection:
     def __init__(self, namelist, ParallelMPI.ParallelMPI Pa):
@@ -31,14 +32,18 @@ cdef class MomentumAdvection:
 
         return
 
-    cpdef initialize(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):
-
+    # cpdef initialize(self, Grid.Grid Gr, PrognosticVariables.PrognosticVariables PV, NetCDFIO_Stats NS, ParallelMPI.ParallelMPI Pa):
+    cpdef initialize(self, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
+        DV.add_variables('wBudget_MomentumAdvection', 'm s^-2', r'wadv', 'w advection', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumAdvection_RK0', 'm s^-2', r'wadv_rk0', 'w advection', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumAdvection_RK1', 'm s^-2', r'wadv_rk1', 'w advection', 'sym', Pa)
+        DV.add_variables('wBudget_MomentumAdvection_RK2', 'm s^-2', r'wadv_rk1', 'w advection', 'sym', Pa)
         #for i in xrange(Gr.dims.dims):
         #    NS.add_profile(PV.velocity_names_directional[i] + '_flux_z',Gr,Pa)
 
         return
 
-    cpdef update(self, Grid.Grid Gr, ReferenceState.ReferenceState Rs, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI Pa):
+    cpdef update(self, Grid.Grid Gr, ReferenceState.ReferenceState Rs, PrognosticVariables.PrognosticVariables PV, DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI Pa):
 
         cdef:
             Py_ssize_t i_advecting  # Direction of advecting velocity
@@ -49,7 +54,12 @@ cdef class MomentumAdvection:
             # Shift to beginning of advecting velocity componentin the
             # PV.values array
             Py_ssize_t shift_advecting
+            Py_ssize_t wadv_shift = DV.get_varshift(Gr, 'wBudget_MomentumAdvection')
 
+            Py_ssize_t i
+
+        for i in xrange(Gr.dims.npg):
+            DV.values[wadv_shift+i] = 0.0
 
         for i_advected in xrange(Gr.dims.dims):
             # Compute the shift to the starting location of the advected
@@ -65,7 +75,7 @@ cdef class MomentumAdvection:
                 # Compute the fluxes
                 compute_advective_tendencies_m(&Gr.dims, &Rs.rho0[0], &Rs.rho0_half[0], &Rs.alpha0[0], &Rs.alpha0_half[0],
                                             &PV.values[shift_advected], &PV.values[shift_advecting],
-                                           &PV.tendencies[shift_advected], i_advected, i_advecting, self.order)
+                                           &PV.tendencies[shift_advected], &DV.values[wadv_shift], i_advected, i_advecting, self.order)
         return
 
 

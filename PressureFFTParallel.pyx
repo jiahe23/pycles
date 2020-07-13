@@ -37,6 +37,7 @@ cdef class PressureFFTParallel:
 
         #Initialize storage for RHS
         self.b = np.zeros(Gr.dims.nl[2],dtype=np.double,order='c')
+        self.bb = np.zeros(Gr.dims.nl[2],dtype=np.double,order='c')  # for buoyancy pert press
 
         #Compute the modified wave number representation of the horizontal derivatives in the divergence operators
         self.compute_modified_wave_numbers(Gr)
@@ -108,9 +109,11 @@ cdef class PressureFFTParallel:
             Py_ssize_t  k
 
         #self.a is the lower diagonal
-        self.a = np.zeros(Gr.dims.n[2],dtype=np.double,order='c')
+        self.a = np.zeros(Gr.dims.n[2],dtype=np.double,order='c')      
+        self.aa = np.zeros(Gr.dims.n[2],dtype=np.double,order='c')
         #self.c is the upper diagonal
         self.c = np.zeros(Gr.dims.n[2],dtype=np.double,order='c')
+        self.cc = np.zeros(Gr.dims.n[2],dtype=np.double,order='c')
 
         #Set boundary conditions at the surface
         self.a[0] =  0.0
@@ -125,6 +128,9 @@ cdef class PressureFFTParallel:
         k = Gr.dims.n[2]-1
         self.a[k] = Gr.dims.dxi[2] * Gr.dims.dxi[2] * RS.rho0[k + Gr.dims.gw-1] * Gr.imet[k + Gr.dims.gw - 1] * Gr.imet_half[k + Gr.dims.gw]
         self.c[k] = 0.0
+
+        self.aa = self.a
+        self.cc = self.c
 
     cdef inline void compute_diagonal(self,Grid.Grid Gr,ReferenceState.ReferenceState RS,Py_ssize_t i, Py_ssize_t j) nogil:
 
@@ -145,6 +151,7 @@ cdef class PressureFFTParallel:
         self.b[k] = (RS.rho0_half[k + Gr.dims.gw] * (kx2 + ky2)
                          - (Gr.imet[k + Gr.dims.gw - 1]*Gr.imet_half[k + Gr.dims.gw] * RS.rho0[k + Gr.dims.gw -1])*Gr.dims.dxi[2]*Gr.dims.dxi[2])
 
+        self.bb = self.b
 
         return
 
@@ -217,5 +224,78 @@ cdef class PressureFFTParallel:
         with nogil:
             for i in xrange(Gr.dims.npg):
                 DV.values[pres_shift + i ] = pres[i].real
+
+        return
+
+    cpdef solve_Pb(self,Grid.Grid Gr, ReferenceState.ReferenceState RS,DiagnosticVariables.DiagnosticVariables DV
+                , ParallelMPI.ParallelMPI Pa):
+
+        cdef:
+            Py_ssize_t i,j,k,ijk
+            Py_ssize_t istride = Gr.dims.nl[1] * Gr.dims.nl[2]
+            Py_ssize_t jstride = Gr.dims.nl[1]
+            Py_ssize_t ishift, jshift
+            double [:] dkr = np.empty((Gr.dims.nl[2]),dtype=np.double,order='c')
+            double [:] dki = np.empty((Gr.dims.nl[2]),dtype=np.double,order='c')
+            # Py_ssize_t baz_shift = DV.get_varshift(Gr,'baz')
+            Py_ssize_t baz_shift = DV.get_varshift(Gr,'baz')
+            Py_ssize_t pb_shift = DV.get_varshift(Gr,'buoyancy_pressure') 
+            Py_ssize_t p, pencil_i, pencil_j
+            Py_ssize_t count = 0
+            Py_ssize_t pencil_shift = 0 #self.Z_Pencil.n_pencil_map[self.Z_Pencil.rank - 1]
+            double [:,:] x_pencil
+            complex [:,:] x_pencil_fft, x_pencil_ifft, x_pencil_complex
+            complex [:,:] y_pencil, y_pencil_fft, z_pencil
+            complex [:] baz_fft= np.zeros(Gr.dims.npg,dtype=np.complex,order='c')
+            complex [:] pb = np.zeros(Gr.dims.npg,dtype=np.complex,order='c')
+
+        #Do fft in x direction
+        x_pencil = self.X_Pencil.forward_double(&Gr.dims, Pa, &DV.values[baz_shift])
+        x_pencil_fft = fft(x_pencil,axis=1)
+        self.X_Pencil.reverse_complex(&Gr.dims, Pa, x_pencil_fft, &baz_fft[0] )
+
+        #Do fft in y direction
+        y_pencil = self.Y_Pencil.forward_complex(&Gr.dims, Pa, &baz_fft[0])
+        y_pencil_fft = fft(y_pencil,axis=1)
+        self.Y_Pencil.reverse_complex(&Gr.dims, Pa, y_pencil_fft, &baz_fft[0])
+
+        #Transpose in z
+        z_pencil = self.Z_Pencil.forward_complex(&Gr.dims, Pa, &baz_fft[0])
+
+        #At this point the data is in the correct pencils so we may do the TDMA solve
+        for p in xrange(self.Z_Pencil.n_local_pencils):
+            pencil_i = (pencil_shift + p) // Gr.dims.nl[1]
+            pencil_j = (pencil_shift + p) % Gr.dims.nl[1]
+            for k in xrange(Gr.dims.nl[2]):
+                dkr[k] =  z_pencil[p,k].real
+                dki[k] =  z_pencil[p,k].imag
+
+            self.compute_diagonal(Gr,RS,pencil_i,pencil_j)
+            self.TDMA_Solver.solve(&dkr[0],&self.a[0],&self.bb[0],&self.c[0])
+            self.TDMA_Solver.solve(&dki[0],&self.a[0],&self.bb[0],&self.c[0])
+
+            for k in xrange(Gr.dims.nl[2]):
+               if pencil_i + Gr.dims.indx_lo[0] !=0 or pencil_j + Gr.dims.indx_lo[1] !=0:
+                   z_pencil[p,k] = dkr[k] + dki[k] * 1j
+               else:
+                   z_pencil[p,k] = 0.0
+
+        #Inverse transpose in z
+        self.Z_Pencil.reverse_complex(&Gr.dims, Pa, z_pencil, &baz_fft[0])
+
+        #Do ifft in y direction
+        y_pencil = self.Y_Pencil.forward_complex(&Gr.dims, Pa, &baz_fft[0])
+        y_pencil_fft = ifft(y_pencil,axis=1)
+        self.Y_Pencil.reverse_complex(&Gr.dims, Pa, y_pencil_fft, &baz_fft[0])
+
+        #Do ifft in x direction
+        x_pencil_complex = self.X_Pencil.forward_complex(&Gr.dims, Pa, &baz_fft[0])
+        x_pencil_ifft =ifft(x_pencil_complex,axis=1)
+        self.X_Pencil.reverse_complex(&Gr.dims, Pa, x_pencil_ifft, &pb[0] )
+
+        count = 0
+        with nogil:
+            for i in xrange(Gr.dims.npg):
+                DV.values[pb_shift + i ] = pb[i].real
 
         return

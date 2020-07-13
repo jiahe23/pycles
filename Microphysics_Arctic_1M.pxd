@@ -30,6 +30,7 @@ cdef inline double lambda_Arctic(double T) nogil:
 
     #POW_N can be modified in generate_parameters_a1m.py
 
+
     #Lambda = 0.5 + 0.5 * tanh((T - 266.65000072654806)/2.6409572185027406)
 
 
@@ -79,6 +80,7 @@ cdef inline double lambda_logistic(double T) nogil:
         Lambda = 1.0
     else:
         Lambda = 0.0
+
     return Lambda
 
 

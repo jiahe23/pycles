@@ -28,7 +28,7 @@ cdef extern from "thermodynamics_dry.h":
     void eos_update(Grid.DimStruct *dims, double *pd, double *s, double *T,
                     double *alpha)
     void buoyancy_update(Grid.DimStruct *dims, double *alpha0, double *alpha,double *buoyancy,
-                         double *wt)
+                         double *wt, double *wbuoy)
     void bvf_dry(Grid.DimStruct* dims,  double* p0, double* T, double* theta, double* bvf)
 
 
@@ -51,6 +51,11 @@ cdef class ThermodynamicsDry:
         DV.add_variables('temperature', r'K', r'T', r'temperature', 'sym', Pa)
         DV.add_variables('buoyancy_frequency', r's^-1', r'N', 'buoyancy frequencyt', 'sym', Pa)
         DV.add_variables('theta', r'K', r'\theta','potential tremperature', 'sym', Pa)
+
+        DV.add_variables('wBudget_Buoyancy', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_RK0', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_RK1', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
+        DV.add_variables('wBudget_Buoyancy_RK2', 'm s^-2', r'wbuoy', 'w buoyancy', 'sym', Pa)
 
 
         #Add statistical output
@@ -92,9 +97,10 @@ cdef class ThermodynamicsDry:
         cdef Py_ssize_t w_shift  = PV.get_varshift(Gr,'w')
         cdef Py_ssize_t theta_shift = DV.get_varshift(Gr,'theta')
         cdef Py_ssize_t bvf_shift = DV.get_varshift(Gr,'buoyancy_frequency')
+        cdef Py_ssize_t wbuoy_shift = DV.get_varshift(Gr,'wBudget_Buoyancy')
 
         eos_update(&Gr.dims,&RS.p0_half[0],&PV.values[s_shift],&DV.values[t_shift],&DV.values[alpha_shift])
-        buoyancy_update(&Gr.dims,&RS.alpha0_half[0],&DV.values[alpha_shift],&DV.values[buoyancy_shift],&PV.tendencies[w_shift])
+        buoyancy_update(&Gr.dims,&RS.alpha0_half[0],&DV.values[alpha_shift],&DV.values[buoyancy_shift],&PV.tendencies[w_shift],&DV.values[wbuoy_shift])
         bvf_dry(&Gr.dims,&RS.p0_half[0],&DV.values[t_shift],&DV.values[theta_shift],&DV.values[bvf_shift])
 
         return
@@ -192,5 +198,3 @@ cdef class ThermodynamicsDry:
         NS.write_ts('thetas_min',np.amin(tmp[Gr.dims.gw:-Gr.dims.gw]),Pa)
 
         return
-
-

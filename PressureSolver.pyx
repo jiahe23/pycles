@@ -26,8 +26,10 @@ cdef class PressureSolver:
     cpdef initialize(self,namelist, Grid.Grid Gr,ReferenceState.ReferenceState RS ,DiagnosticVariables.DiagnosticVariables DV, ParallelMPI.ParallelMPI PM):
 
         DV.add_variables('dynamic_pressure', 'Pa', r'p', 'dynamic pressure', 'sym', PM)
+        DV.add_variables('buoyancy_pressure', 'Pa', r'p', 'buoyancy pressure', 'sym', PM)
         DV.add_variables('press2', 'Pa', r'p', 'dynamic pressure', 'sym', PM)
         DV.add_variables('divergence', '1/s', r'd', '3d divergence', 'sym',PM)
+        DV.add_variables('baz', '1/s', r'd', 'dba/dz', 'sym',PM)
         DV.add_variables('div1', '1/s', r'd', '3d divergence', 'sym',PM)
         DV.add_variables('div2', '1/s', r'd', '3d divergence', 'sym',PM)
 
@@ -44,6 +46,10 @@ cdef class PressureSolver:
         DV.add_variables('wBudget_removeHorAve_RK3', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
         DV.add_variables('wBudget_removeHorAve_RK4', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
 
+        DV.add_variables('wBudget_BuoyancyPressureGradient', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_BuoyancyPressureGradient_RK0', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+        DV.add_variables('wBudget_BuoyancyPressureGradient_RK1', 'Pa m^2/kg', r'pgrad', 'pressure gradient', 'sym', PM)
+
         DV.add_variables('wtmp_beforeP', 'm/s', r'pgrad', 'pressure gradient', 'sym', PM)
         DV.add_variables('wtmp_afterP', 'm/s', r'pgrad', 'pressure gradient', 'sym', PM)
 
@@ -58,44 +64,57 @@ cdef class PressureSolver:
                   DiagnosticVariables.DiagnosticVariables DV, PrognosticVariables.PrognosticVariables PV, ParallelMPI.ParallelMPI PM):
 
         cdef:
-            Py_ssize_t i
+            Py_ssize_t i,j,k,ijk
+            Py_ssize_t ishift, jshift
+            Py_ssize_t imin = Gr.dims.gw
+            Py_ssize_t jmin = Gr.dims.gw
+            Py_ssize_t kmin = Gr.dims.gw
+            Py_ssize_t imax = Gr.dims.nlg[0] - Gr.dims.gw
+            Py_ssize_t jmax = Gr.dims.nlg[1] - Gr.dims.gw
+            Py_ssize_t kmax = Gr.dims.nlg[2] - Gr.dims.gw
+            Py_ssize_t istride = Gr.dims.nlg[1] * Gr.dims.nlg[2]
+            Py_ssize_t jstride = Gr.dims.nlg[2]
             Py_ssize_t d
             Py_ssize_t vel_shift
             Py_ssize_t u_shift = PV.get_varshift(Gr,'u')
             Py_ssize_t v_shift = PV.get_varshift(Gr,'v')
             Py_ssize_t w_shift = PV.get_varshift(Gr,'w')
             Py_ssize_t pres_shift = DV.get_varshift(Gr,'dynamic_pressure')
+            Py_ssize_t pb_shift = DV.get_varshift(Gr,'buoyancy_pressure')
             Py_ssize_t div_shift = DV.get_varshift(Gr,'divergence')
-            Py_ssize_t div1_shift = DV.get_varshift(Gr,'div1')
-            Py_ssize_t div2_shift = DV.get_varshift(Gr,'div2')
+            Py_ssize_t baz_shift = DV.get_varshift(Gr,'baz')
+            Py_ssize_t b_shift = DV.get_varshift(Gr,'buoyancy')
+            # Py_ssize_t div1_shift = DV.get_varshift(Gr,'div1')
+            # Py_ssize_t div2_shift = DV.get_varshift(Gr,'div2')
 
             Py_ssize_t dpdz_shift = DV.get_varshift(Gr,'wBudget_PressureGradient')
+            Py_ssize_t dpbdz_shift = DV.get_varshift(Gr,'wBudget_BuoyancyPressureGradient')
             Py_ssize_t whor_shift = DV.get_varshift(Gr,'wBudget_removeHorAve')
 
-            Py_ssize_t wbp_shift = DV.get_varshift(Gr,'wtmp_beforeP')
-            Py_ssize_t wap_shift = DV.get_varshift(Gr,'wtmp_afterP')
+            # Py_ssize_t wbp_shift = DV.get_varshift(Gr,'wtmp_beforeP')
+            # Py_ssize_t wap_shift = DV.get_varshift(Gr,'wtmp_afterP')
 
-        #Now compute the momentum divergence before removing w_mean
-        with nogil:
-            for i in xrange(Gr.dims.npg):
-                DV.values[div1_shift + i] = 0.0
-        for d in xrange(Gr.dims.dims):
-            vel_shift = PV.velocity_directions[d]*Gr.dims.npg
-            second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
-                 &DV.values[div1_shift] ,d)
+        # #Now compute the momentum divergence before removing w_mean
+        # with nogil:
+        #     for i in xrange(Gr.dims.npg):
+        #         DV.values[div1_shift + i] = 0.0
+        # for d in xrange(Gr.dims.dims):
+        #     vel_shift = PV.velocity_directions[d]*Gr.dims.npg
+        #     second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
+        #          &DV.values[div1_shift] ,d)
 
         #Remove mean u3
         cdef double [:] u3_mean = PM.HorizontalMean(Gr,&PV.values[w_shift])
         remove_mean_u3(&Gr.dims,&u3_mean[0],&PV.values[w_shift],&DV.values[whor_shift])
 
-        #Now compute the momentum divergence after removing w_mean
-        with nogil:
-            for i in xrange(Gr.dims.npg):
-                DV.values[div2_shift + i] = 0.0
-        for d in xrange(Gr.dims.dims):
-            vel_shift = PV.velocity_directions[d]*Gr.dims.npg
-            second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
-                 &DV.values[div2_shift] ,d)
+        # #Now compute the momentum divergence after removing w_mean
+        # with nogil:
+        #     for i in xrange(Gr.dims.npg):
+        #         DV.values[div2_shift + i] = 0.0
+        # for d in xrange(Gr.dims.dims):
+        #     vel_shift = PV.velocity_directions[d]*Gr.dims.npg
+        #     second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
+        #          &DV.values[div2_shift] ,d)
 
         #Zero the divergence array [Perhaps we can replace this with a C-Call to Memset]
         with nogil:
@@ -108,23 +127,49 @@ cdef class PressureSolver:
             second_order_divergence(&Gr.dims, &RS.alpha0[0], &RS.alpha0_half[0],&PV.values[vel_shift],
                  &DV.values[div_shift] ,d)
 
+        #compute db/dz and save in baz
+        with nogil:
+            for i in xrange(Gr.dims.npg):
+                DV.values[baz_shift + i] = 0.0
+        for i in xrange(imin,imax):
+            ishift = i*istride
+            for j in xrange(jmin,jmax):
+                jshift = j * jstride
+                for k in xrange(kmin,kmax):
+                     ijk = ishift + jshift + k
+                     DV.values[baz_shift+ijk] += 0.5*((DV.values[b_shift+ijk+1])/RS.alpha0[k+1] - (DV.values[b_shift+ijk-1])/RS.alpha0[k-1])/Gr.dims.dx[2]*Gr.dims.imetl_half[k]
+ 
+        #remove horizontal mean from db/dz and save in baz
+        cdef double [:] baz_mean = PM.HorizontalMean(Gr,&DV.values[baz_shift])
+        with nogil:
+            for i in xrange(imin,imax):
+                ishift = i*istride
+                for j in xrange(jmin,jmax):
+                    jshift = j * jstride
+                    for k in xrange(kmin,kmax):
+                        ijk = ishift + jshift + k
+                        DV.values[baz_shift+ijk] = DV.values[baz_shift+ijk] - baz_mean[k]
+
         #Now call the pressure solver
         self.poisson_solver.solve(Gr, RS, DV, PM)
+        self.poisson_solver.solve_Pb(Gr, RS, DV, PM)
 
         #Update pressure boundary condition
         p_nv = DV.name_index['dynamic_pressure']
+        pb_nv = DV.name_index['buoyancy_pressure']
         DV.communicate_variable(Gr,PM,p_nv)
+        DV.communicate_variable(Gr,PM,pb_nv)
 
         #Apply pressure correction
-        for i in xrange(Gr.dims.npg):
-            DV.values[wbp_shift+i] = PV.values[w_shift+i]
+        # for i in xrange(Gr.dims.npg):
+        #     DV.values[wbp_shift+i] = PV.values[w_shift+i]
 
-        second_order_pressure_correction(&Gr.dims,&DV.values[pres_shift],
+        second_order_pressure_correction(&Gr.dims,&DV.values[pres_shift],&DV.values[pb_shift],
                                          &PV.values[u_shift],&PV.values[v_shift],&PV.values[w_shift],
-                                         &DV.values[dpdz_shift])
+                                         &DV.values[dpdz_shift], &DV.values[dpbdz_shift])
 
-        for i in xrange(Gr.dims.npg):
-            DV.values[wap_shift+i] = PV.values[w_shift+i]
+        # for i in xrange(Gr.dims.npg):
+        #     DV.values[wap_shift+i] = PV.values[w_shift+i]
 
 
         #Zero the divergence array [Perhaps we can replace this with a C-Call to Memset]
@@ -143,7 +188,7 @@ cdef class PressureSolver:
 
         return
 
-cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, double *u, double *v, double *w, double *press_grad ):
+cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, double *pb, double *u, double *v, double *w, double *press_grad, double *pb_grad ):
 
     cdef:
         Py_ssize_t imin = 0
@@ -172,6 +217,7 @@ cdef void second_order_pressure_correction(Grid.DimStruct *dims, double *p, doub
                 v[ijk] -=  (p[ijk + jp1] - p[ijk])*dims.dxi[1]
                 w[ijk] -=  (p[ijk + kp1] - p[ijk])*dims.dxi[2] * dims.imetl[k] #(p[ijk + kp1] - p[ijk])*dims.dxi[2]
                 press_grad[ijk] = -(p[ijk + kp1] - p[ijk])*dims.dxi[2] * dims.imetl[k]
+                pb_grad[ijk] = -(pb[ijk + kp1] - pb[ijk])*dims.dxi[2] * dims.imetl[k]
 
 
     return

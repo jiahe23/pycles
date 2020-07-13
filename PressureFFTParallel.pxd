@@ -8,8 +8,11 @@ cdef class PressureFFTParallel:
 
     cdef:
         double [:] a
+        double [:] aa
         double [:] b
+        double [:] bb
         double [:] c
+        double [:] cc
 
         double [:] kx2
         double [:] ky2
@@ -27,4 +30,7 @@ cdef class PressureFFTParallel:
     cpdef compute_off_diagonals(self,Grid.Grid Gr, ReferenceState.ReferenceState RS)
 
     cpdef solve(self,Grid.Grid Gr, ReferenceState.ReferenceState RS,DiagnosticVariables.DiagnosticVariables DV,
+               ParallelMPI.ParallelMPI PM)
+
+    cpdef solve_Pb(self,Grid.Grid Gr, ReferenceState.ReferenceState RS,DiagnosticVariables.DiagnosticVariables DV,
                ParallelMPI.ParallelMPI PM)

@@ -208,6 +208,7 @@ cdef class TimeStepping:
         cdef:
             Py_ssize_t i
             Py_ssize_t press_shift = DV.get_varshift(Gr, 'dynamic_pressure')
+            Py_ssize_t pb_shift = DV.get_varshift(Gr, 'buoyancy_pressure')
 
             Py_ssize_t whor_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve')
             Py_ssize_t whor_rk0_shift = DV.get_varshift(Gr, 'wBudget_removeHorAve_RK0')
@@ -217,6 +218,10 @@ cdef class TimeStepping:
             Py_ssize_t wpress_rk0_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK0')
             Py_ssize_t wpress_rk1_shift = DV.get_varshift(Gr, 'wBudget_PressureGradient_RK1')
 
+            Py_ssize_t wpb_shift = DV.get_varshift(Gr, 'wBudget_BuoyancyPressureGradient')
+            Py_ssize_t wpb_rk0_shift = DV.get_varshift(Gr, 'wBudget_BuoyancyPressureGradient_RK0')
+            Py_ssize_t wpb_rk1_shift = DV.get_varshift(Gr, 'wBudget_BuoyancyPressureGradient_RK1')
+
 
         with nogil:
             if self.rk_step == 0:
@@ -225,21 +230,27 @@ cdef class TimeStepping:
                     for i in xrange(Gr.dims.npg):
                         DV.values[whor_rk0_shift+i] = 0.0
                         DV.values[wpress_rk0_shift+i] = 0.0
+                        DV.values[wpb_rk0_shift+i] = 0.0
                         DV.values[whor_rk1_shift+i] = 0.0
                         DV.values[wpress_rk1_shift+i] = 0.0
+                        DV.values[wpb_rk1_shift+i] = 0.0
 
                 for i in xrange(Gr.dims.npg):
                     DV.values[whor_rk0_shift+i] += DV.values[whor_shift+i]
                     DV.values[wpress_rk0_shift+i] += DV.values[wpress_shift+i]
+                    DV.values[wpb_rk0_shift+i] += DV.values[wpb_shift+i]
             else:
                 for i in xrange(Gr.dims.npg):
                     DV.values[whor_rk1_shift+i] += DV.values[whor_shift+i]
                     DV.values[wpress_rk1_shift+i] += DV.values[wpress_shift+i]
+                    DV.values[wpb_rk1_shift+i] += DV.values[wpb_shift+i]
 
                     DV.values[press_shift+i] = DV.values[press_shift+i]/self.dt
+                    DV.values[pb_shift+i] = DV.values[pb_shift+i]
 
                     DV.values[whor_shift+i] = DV.values[whor_rk1_shift+i] + DV.values[whor_rk0_shift+i]*0.5
                     DV.values[wpress_shift+i] = DV.values[wpress_rk1_shift+i] + DV.values[wpress_rk0_shift+i]*0.5
+                    DV.values[wpb_shift+i] = DV.values[wpb_rk1_shift+i] + DV.values[wpb_rk0_shift+i]*0.5
 
         return
 

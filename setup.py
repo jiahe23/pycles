@@ -27,6 +27,7 @@ if sys.platform == 'darwin':
     # netcdf_lib = '/opt/local/lib'
     netcdf_include = '/usr/local/include'
     netcdf_lib = '/usr/local/lib'
+
     f_compiler = 'gfortran'
 elif 'euler' in platform.node():
     #Compile flags for euler @ ETHZ
@@ -45,6 +46,21 @@ elif 'euler' in platform.node():
 elif platform.machine()  == 'x86_64':
     #Compile flags for fram @ Caltech
     library_dirs = string.split(os.environ['LD_LIBRARY_PATH'],':')
+    libraries = []
+    libraries.append('mpi')
+    libraries.append('gfortran')
+    extensions = []
+    extra_compile_args=[]
+    extra_compile_args+=['-std=c99', '-O3', '-march=native', '-Wno-unused',
+                         '-Wno-#warnings', '-Wno-maybe-uninitialized', '-Wno-cpp', '-Wno-array-bounds','-fPIC']
+    extra_objects=['./RRTMG/rrtmg_build/rrtmg_combined.o']
+    netcdf_include = '/share/apps/software/rhel6/software/netCDF/4.4.0-foss-2016a/include'
+    netcdf_lib = '/share/apps/software/rhel6/software/netCDF/4.4.0-foss-2016a/lib'
+    f_compiler = 'gfortran'
+
+elif platform.system()=='Linux':
+    #Best guess at compile flags for a Linux computer
+    library_dirs = os.environ['PATH'].split(':')
     libraries = []
     libraries.append('mpi')
     libraries.append('gfortran')

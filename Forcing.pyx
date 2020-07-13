@@ -26,7 +26,7 @@ cdef class Forcing:
         casename = namelist['meta']['casename']
         if casename == 'SullivanPatton':
             self.scheme = ForcingSullivanPatton()
-        elif casename == 'Bomex':
+        elif casename == 'Bomex' or casename == 'lifecycle_Tan2018':
             self.scheme = ForcingBomex()
         elif casename == 'Soares':
             self.scheme = ForcingSoares()
@@ -1687,3 +1687,4 @@ cdef apply_subsidence(Grid.DimStruct *dims, double *rho0, double *rho0_half, dou
                     tendencies[ijk] -= (values[ijk+1] - values[ijk]) * dxi * subsidence[k] * dims.imetl[k]
 
     return
+

@@ -37,6 +37,7 @@ class Simulation3d:
 
     def __init__(self, namelist):
         return
+        
 
 
     def initialize(self, namelist):
@@ -183,6 +184,7 @@ class Simulation3d:
                 self.SA.update(self.Gr,self.RS,PV_, DV_,  self.Pa)
                 # self.MA.update(self.Gr,self.RS,PV_,self.Pa)
                 self.MA.update(self.Gr,self.RS,PV_,DV_,self.Pa)
+
                 self.Sur.update(self.Gr, self.RS,self.PV, self.DV,self.Pa,self.TS)
                 self.SGS.update(self.Gr,self.DV,self.PV, self.Ke, self.Sur,self.Pa)
                 self.Damping.update(self.Gr, self.RS,self.PV, self.DV, self.Pa)
@@ -196,6 +198,7 @@ class Simulation3d:
                 PV_.Update_all_bcs(self.Gr, self.Pa)
                 self.Pr.update(self.Gr, self.RS, self.DV, self.PV, self.Pa)
                 self.TS.update_pressure(self.Gr, self.PV, self.DV, self.Pa)
+
                 self.TS.adjust_timestep(self.Gr, self.PV, self.DV,self.Pa)
                 self.io()
                 #PV_.debug(self.Gr,self.RS,self.StatsIO,self.Pa)
@@ -236,6 +239,7 @@ class Simulation3d:
             # If time to ouptut fields do output
             if self.FieldsIO.last_output_time + self.FieldsIO.frequency == self.TS.t:
                 self.Pa.root_print('Doing 3D FieldIO at T='+str(self.TS.t))
+
                 # self.Th.update(self.Gr, self.RS, self.PV, self.DV)
                 self.FieldsIO.last_output_time = self.TS.t
                 self.FieldsIO.update(self.Gr, self.PV, self.DV, self.TS, self.Pa)

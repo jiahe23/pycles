@@ -72,6 +72,11 @@ cdef class UpdraftTracers:
             self.lcl_tracers = namelist['tracers']['use_lcl_tracers']
         except:
             self.lcl_tracers = False
+        try:
+              self.timescale = namelist['tracers']['timescale']
+        except:
+              self.timescale = 15.0
+              print('Tracer timescale is set do 15min by default')
 
         self.index_lcl = 0
         self.casename = str(namelist['meta']['casename'])
@@ -92,12 +97,12 @@ cdef class UpdraftTracers:
         # Can be expanded for different init heights or timescales
         self.tracer_dict = {}
         self.tracer_dict['surface'] = {}
-        self.tracer_dict['surface']['c_srf_15'] = {}
-        self.tracer_dict['surface']['c_srf_15']['timescale'] = 15.0 * 60.0
+        self.tracer_dict['surface']['c_srf_' + str(int(self.timescale))] = {}
+        self.tracer_dict['surface']['c_srf_' + str(int(self.timescale))]['timescale'] = self.timescale * 60.0
         if self.lcl_tracers:
             self.tracer_dict['lcl'] = {}
-            self.tracer_dict['lcl']['c_lcl_15'] = {}
-            self.tracer_dict['lcl']['c_lcl_15']['timescale'] = 15.0 * 60.0
+            self.tracer_dict['lcl']['c_lcl_' + str(int(self.timescale))] = {}
+            self.tracer_dict['lcl']['c_lcl_' + str(int(self.timescale))]['timescale'] = self.timescale * 60.0
 
         for var in self.tracer_dict['surface'].keys():
 
@@ -240,6 +245,7 @@ cdef class UpdraftTracers:
         #                desc=r'updraft specific volume')
         # NS.add_profile('env_alpha', Gr, Pa, units=r'm^{3}kg^{-1}', nice_name=r'alpha_{e}',
         #                desc=r'environment specific volume')
+
 
 
         if 'ql' in DV.name_index:
@@ -418,7 +424,7 @@ cdef class UpdraftTracers:
             Py_ssize_t v_shift = PV.get_varshift(Gr,'v')
             Py_ssize_t w_shift = PV.get_varshift(Gr,'w')
             Py_ssize_t q_shift = PV.get_varshift(Gr,'qt')
-            Py_ssize_t c_shift = PV.get_varshift(Gr,'c_srf_15')
+            Py_ssize_t c_shift = PV.get_varshift(Gr,'c_srf_' + str(int(self.timescale)))
             Py_ssize_t b_shift = DV.get_varshift(Gr, 'buoyancy')
             Py_ssize_t t_shift = DV.get_varshift(Gr, 'temperature')
             Py_ssize_t bvf_shift = DV.get_varshift(Gr, 'buoyancy_frequency')
@@ -431,6 +437,7 @@ cdef class UpdraftTracers:
             Py_ssize_t wdiff_shift = DV.get_varshift(Gr, 'wBudget_MomentumDiffusion')
             Py_ssize_t wbuoy_shift = DV.get_varshift(Gr, 'wBudget_Buoyancy')
             Py_ssize_t wtdc_shift = DV.get_varshift(Gr, 'wBudget_TDC')
+
             Py_ssize_t alpha_shift = DV.get_varshift(Gr, 'alpha')
             Py_ssize_t ql_shift, th_shift, qr_shift
             double [:] cloudfraction = np.zeros((Gr.dims.npg),dtype=np.double, order='c')
@@ -582,6 +589,7 @@ cdef class UpdraftTracers:
 
         # tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[alpha_shift], &self.updraft_indicator[0])
         # NS.write_profile('updraft_alpha', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
+
 #        tmp = Pa.HorizontalMeanConditional(Gr, &DV.values[alpha_shift], &self.env_indicator[0])
 #        NS.write_profile('env_alpha', tmp[Gr.dims.gw:-Gr.dims.gw], Pa)
 
@@ -765,6 +773,11 @@ cdef class PurityTracers:
     def __init__(self, namelist):
         cdef UpdraftTracers TracersUpdraft
         self.TracersUpdraft = UpdraftTracers(namelist)
+        try:
+              self.timescale = namelist['tracers']['timescale']
+        except:
+              self.timescale = 15.0
+              print('Tracer timescale is set do 15min by default')
         return
 
     cpdef initialize(self, Grid.Grid Gr,  PrognosticVariables.PrognosticVariables PV,
@@ -801,8 +814,8 @@ cdef class PurityTracers:
         cdef:
             Py_ssize_t w_shift = PV.get_varshift(Gr,'w')
             Py_ssize_t q_shift = PV.get_varshift(Gr,'qt')
-            Py_ssize_t th_shift #= DV.get_varshift(Gr,'thetali')
-            Py_ssize_t c_shift = PV.get_varshift(Gr,'c_srf_15')
+            Py_ssize_t th_shift = DV.get_varshift(Gr,'thetali')
+            Py_ssize_t c_shift = PV.get_varshift(Gr,'c_srf_' + str(int(self.timescale)))
             Py_ssize_t p_shift = PV.get_varshift(Gr,'purity_srf')
             Py_ssize_t pt_shift = PV.get_varshift(Gr,'time_srf')
             Py_ssize_t pq_shift = PV.get_varshift(Gr,'qt_srf')
